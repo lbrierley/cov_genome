@@ -1,2 +1,1 @@
-# cov_genome
-Coronaviridae genome composition
+# Coronaviridae genome composition project(s)
