@@ -7,6 +7,7 @@ rm(list=ls())
 # Requires taxizedb_0.1.9.9130 or greater which > CRAN version
 #devtools::install_github("ropensci/taxizedb")
 
+library(Biostrings)
 library(coRdon)
 library(ggalluvial)
 library(ggmosaic)
@@ -32,9 +33,8 @@ library(XML)
 ###############
 
 # Set global variables
-setwd("C:\\Users\\Liam\\Desktop\\CoV Genomics\\data")
+setwd("C:\\Users\\Liam\\Desktop\\CoV Genomics")
 set_entrez_key("7e8a75a8d92089428e7489e7dc2ea85b0708")
-# LOAD PRE SAVED DATA load("TEMP_03_02_20.RData")
 
 # Format a reference table of codons, amino acids and degeneracy values
 codon_ref <- data.frame(aminoacid = Biostrings::GENETIC_CODE) %>%
@@ -49,6 +49,9 @@ src_ncbi <- src_ncbi()
 # Do you want to load previously downloaded data instead of re-extracting?
 load_prev_seqs <- TRUE
 
+# Set searchterms
+searchterm <- '(spike[Title] OR "S gene"[Title] OR "S protein"[Title] OR "S glycoprotein"[Title] OR "S1 gene"[Title] OR "S1 protein"[Title] OR "S1 glycoprotein"[Title] OR peplomer[Title] OR peplomeric[Title] OR peplomers[All Title] OR "complete genome"[Title]) NOT (patent[Title] OR vaccine OR artificial OR construct OR recombinant[Title])'
+
 ####################
 # Define functions #
 ####################
@@ -56,7 +59,7 @@ load_prev_seqs <- TRUE
 # add "surface protein" "surface glycoprotein"?
 
 Seq_searcher <- function(x){
-  Seq_result <- entrez_search(db="nuccore", term=paste0('txid', x, '[Organism:noexp] AND (spike[Title] OR "S gene"[Title] OR "S protein"[Title] OR "S glycoprotein"[Title] OR "S1 gene"[Title] OR "S1 protein"[Title] OR "S1 glycoprotein"[Title] OR peplomer[Title] OR peplomeric[Title] OR peplomers[All Title] OR "complete genome"[Title]) NOT (patent[Title] OR vaccine OR artificial OR construct OR recombinant[Title])'),
+  Seq_result <- entrez_search(db="nuccore", term=paste0('txid', x, '[Organism:noexp] AND ', searchterm),
                               retmax=10000)
 }
 
@@ -69,7 +72,12 @@ Seq_summary <- function(x){
     Seq_result[[i]] <- entrez_summary(db = "nuccore",id = x[unlist(query_index[i])])
     Sys.sleep(5)
   }
-  return(flatten(Seq_result))
+  
+  if(length(x) == 1){
+    return(Seq_result)
+  } else {
+    return(Seq_result %>% flatten %>% unname)
+  }
 }
 
 Seq_FASTA <- function(x){
@@ -83,3 +91,14 @@ Seq_FASTA <- function(x){
   }
   return(flatten_chr(Seq_result) %>% paste(collapse=""))
 }
+
+###############
+# Run scripts #
+###############
+
+header(verbose, "Extracting and processing sequence data", padding=0)
+source("scripts\\process_cov_seq.R" )
+
+# Render lab books
+render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\data_summary.Rmd", 
+       output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\data_summary.html")
