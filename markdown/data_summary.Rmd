@@ -103,23 +103,13 @@ table(cov_enc_df$seqtype) %>% kable
 
 **Excluding partial sequences**, summaries of counts of different complete coding sequence types *per coronavirus (taxid)*:
 
-S
+**Whole S:**
 
 ```{r}
 table(allcov_df$n_S) %>% t %>% kable
 ```
 
-S1 - *only 17 viruses have these*
-
-```{r}
-table(allcov_df$n_S1) %>% t %>% kable
-```
-
-S2 - *only 2 viruses have these (infectious bronchitis virus, porcine epidemic diarrhea virus), and they have many sequences!*
-
-```{r}
-table(allcov_df$n_S2) %>% t %>% kable
-```
+**S1, S2:**  *only `r allcov_df %>% filter(n_S1 > 0) %>% nrow` and `r allcov_df %>% filter(n_S2 > 0) %>% nrow` have complete sequences for isolated subunits, respectively. (S1 = `r allcov_df %>% filter(n_S1 > 0) %>% .$childtaxa_name`, S2 = `r allcov_df %>% filter(n_S2 > 0) %>% .$childtaxa_name`)*
 
 **Excluding partial sequences**, summaries of genomic characteristics *per coronavirus (taxid)* (i.e. values are averaged within each virus so that each virus represents only one data point):
 
@@ -134,7 +124,7 @@ ggplot(allcov_df, aes(x = mean_wgs_length)) +
 
 *Mean lengths, ENC, GC content of spike proteins compared to other proteins:*
 
-```{r plot_length_enc_gc, results="asis", layout="l-body-outset", fig.height=12.0, fig.width=13.0}
+```{r plot_length_enc_gc, results="asis", layout="l-body-outset", fig.height=9.0, fig.width=10.0}
 g2 <- ggplot(allcov_df %>% select(mean_length_other, mean_length_S) %>% melt, aes(x = value, fill = variable)) +  
   geom_density(alpha = 0.6) +
   scale_fill_discrete(name = "protein", labels = c(paste0("other (n = ",allcov_df %>% filter(!is.na(mean_length_other)) %>% nrow,")"),

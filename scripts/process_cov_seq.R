@@ -93,12 +93,14 @@ allcov_meta_df <- sapply(c("uid", "caption", "title", "extra", "gi", "createdate
                          , function(x) extract_from_esummary(allcov_found_summaries, x) %>% as.vector) %>% as.data.frame
 allcov_meta_df$length <- extract_from_esummary(allcov_found_summaries, "statistics") %>% t %>% .[,2] %>% lapply(., function(x) x[1]) %>% unlist
 
-# Clean up metadata and assign each entry as complete or partial genome - REVISIT THIS
+# Clean up metadata and assign each entry as complete or partial genome
 allcov_meta_df %<>% mutate(complete = case_when(
-  grepl("complete genome", title, ignore.case=TRUE) ~ "whole_genome",
-  grepl("[spike|S protein].*partial", title, ignore.case=TRUE) ~ "partial_spike",
-  grepl("[spike|S protein].*complete", title, ignore.case=TRUE)  ~ "complete_spike")
-) %>% replace_na(list(complete = "complete_spike")) # Assuming if not mentioned, then complete spike
+  grepl("complete genome", title, ignore.case=TRUE) ~ "whole_genome",    # Assign as whole genome if labelled so
+  metadata_title_cleaner(title) == "partial" ~ "partial_spike",          # Else apply the metadata cleaner
+  metadata_title_cleaner(title) == "complete"  ~ "complete_spike",
+  grepl("partial", title, ignore.case=TRUE) ~ "partial_spike",           # If the complex metadata cleaner can't assign it (which is only 3% of records) then just do a simple search match
+  grepl("complete", title, ignore.case=TRUE) ~ "complete_spike")) %>% 
+ replace_na(list(complete = "complete_spike"))                           # Else no mention of completeness (which is only 0.3% of records), then just assume complete spike
 
 ## Code to assist choosing regexp for assigning complete
 # table(allcov_meta_df$completeness, exclude = NULL) #MOST NOT LABELLED

@@ -14,6 +14,7 @@ library(ggmosaic)
 library(knitr)
 library(lattice)
 library(magrittr)
+library(patchwork)
 library(pbapply)
 library(plyr)
 library(plotly)
@@ -90,6 +91,14 @@ Seq_FASTA <- function(x){
     Sys.sleep(5)
   }
   return(flatten_chr(Seq_result) %>% paste(collapse=""))
+}
+
+metadata_title_cleaner <- function(x){
+    x %>%
+    as.character %>%
+    strsplit(., "(?<=.)(?= cds)", perl=TRUE) %>%                # split title into chunks based on "cds" separator
+    lapply(function(x) x[grepl("spike|surface gly|s gly|s prot|S gene|peplom|(S1)| S1 |(S2)| S2 |subunit 1|subunit 2|1 subunit|2 subunit", x, ignore.case = TRUE)] %>%       # search for the chunk describing the S protein
+             word(., -1))                                       # save whether partial or complete (which should be last word in string)
 }
 
 ###############
