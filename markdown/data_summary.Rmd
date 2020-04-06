@@ -29,7 +29,7 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, error=TRUE)
 - Total sequence accessions: **`r n_seq`**, made up of **`r n_cds`** individual protein coding sequences
 
 ```{r}
-allcov_df %>% mutate(n_seqs = ifelse(n_seqs > 0, "sequence available", "no sequence"), Hostspp = ifelse(Hostspp > 0, "host recognised", "no hosts")) %>% with(table(n_seqs, Hostspp)) %>% kable
+allcov_df %>% mutate(n_seqs = ifelse(n_seqs > 0, "spike sequence available", "no spike sequence"), Hostspp = ifelse(Hostspp > 0, "host recognised", "no hosts")) %>% with(table(n_seqs, Hostspp)) %>% kable
 ```
 
 **Number of sequences per coronavirus heavily skewed, most just have 1:**
@@ -84,7 +84,7 @@ ggplot(data.frame(host = allcov_df %>% filter(n_seqs > 0) %>% select(starts_with
 
 *Not too sure this is very meaningful given how little we know about potential animal hosts of coronaviruses*
 
-## Sequence data summaries
+## Sequence data quality
 
 - Total sequence accessions: **`r n_seq`**, most of which are only partial sequences for spike *(NB this distinction assigned using regexp searches in title, as most accessions are missing the "completeness" field and some appear incorrect)*
 
@@ -92,24 +92,26 @@ ggplot(data.frame(host = allcov_df %>% filter(n_seqs > 0) %>% select(starts_with
 table(allcov_meta_df$complete) %>% prop.table %>% kable
 ```
 
-- While most sequences are only partial, most coronaviruses with at least 1 sequence actually have at least 1 complete spike sequence (`r n_cov_seq - (allcov_meta_df %>% group_by(taxid, complete) %>% count(complete) %>% spread(complete, n, fill=0) %>% rename_at(vars(-taxid), ~ paste0("n_",.)) %>% filter(n_complete_spike == 0 & n_whole_genome == 0) %>% nrow)` of `r n_cov_seq`), *i.e. most of these partial spikes are for the same coronaviruses*
+- While most sequences are only partial, most coronaviruses with at least 1 sequence actually have at least 1 complete spike sequence (`r allcov_df %>% filter(!is.na(n_S) & n_S > 0) %>% nrow` of `r n_cov_seq`).
 
 - Trying to determine which protein coding sequences correspond to the spike proteins:
 - `r round((cov_enc_df %>% filter(is.na(protein)) %>% nrow)*100/n_cds,2)`% of coding sequences do not have a protein label annotation in metadata and `r round((cov_enc_df %>% filter(is.na(gene)) %>% nrow)*100/n_cds,2)`% do not have a gene label annotation - using regular expressions based on proteins to determine whether each coding sequence is spike (may be entire S, or just S1 subunit, S2 subunit) or other:
 
 ```{r}
-table(cov_enc_df$seqtype) %>% kable
+cov_enc_df %>% filter(include == "Y") %>% with(table(seqtype, complete)) %>% kable
 ```
 
-**Excluding partial sequences**, summaries of counts of different complete coding sequence types *per coronavirus (taxid)*:
-
-**Whole S:**
+**Excluding partial sequences**, summaries of counts of different complete spike protein sequence types *per coronavirus (taxid)*:
 
 ```{r}
 table(allcov_df$n_S) %>% t %>% kable
 ```
 
-**S1, S2:**  *only `r allcov_df %>% filter(n_S1 > 0) %>% nrow` and `r allcov_df %>% filter(n_S2 > 0) %>% nrow` have complete sequences for isolated subunits, respectively. (S1 = `r allcov_df %>% filter(n_S1 > 0) %>% .$childtaxa_name`, S2 = `r allcov_df %>% filter(n_S2 > 0) %>% .$childtaxa_name`)*
+So **`r sum(allcov_df$n_S, na.rm=TRUE)`** individual spike protein sequences across **`r allcov_df %>% filter(!is.na(n_S) & n_S > 0) %>% nrow`** viruses.
+
+*NB further complete coding sequences are available that give subunits separately - for S1, `r allcov_df %>% filter(n_S1 > 0) %>% nrow` virus (`r allcov_df %>% filter(n_S1 > 0) %>% .$childtaxa_name`) and for S2, `r allcov_df %>% filter(n_S2 > 0) %>% nrow` virus (`r allcov_df %>% filter(n_S2 > 0) %>% .$childtaxa_name`). Not considering these for now.*
+
+## Sequence data summaries
 
 **Excluding partial sequences**, summaries of genomic characteristics *per coronavirus (taxid)* (i.e. values are averaged within each virus so that each virus represents only one data point):
 

@@ -1,0 +1,134 @@
+Gene ID,Gene symbol,Description,Scientific name,Common name,RefSeq Transcript accessions,RefSeq Protein accessions,SPARCLE ID,Curation Status,RefseqSelect,Default sequence
+1803,DPP4,dipeptidyl peptidase 4,Homo sapiens,human,NM_001935.4,NP_001926.2,12012129,curated,RefseqSelect,default-seq
+13482,Dpp4,dipeptidylpeptidase 4,Mus musculus,house mouse,NM_010074.3,NP_034204.1,12012129,curated,,default-seq
+25253,Dpp4,dipeptidylpeptidase 4,Rattus norvegicus,Norway rat,NM_012789.1,NP_036921.1,12012129,curated,,default-seq
+281122,DPP4,dipeptidyl peptidase 4,Bos taurus,cattle,NM_174039.3,NP_776464.1,12012129,curated,,default-seq
+397492,DPP4,dipeptidyl peptidase 4,Sus scrofa,pig,NM_214257.1,NP_999422.1,12012129,curated,,default-seq
+459689,DPP4,dipeptidyl peptidase 4,Pan troglodytes,chimpanzee,XM_515858.5,XP_515858.2,12012129,model,,default-seq
+478767,DPP4,dipeptidyl peptidase 4,Canis lupus familiaris,dog,XM_014110860.2,XP_013966335.1,12012129,model,,default-seq
+493787,DPP4,dipeptidyl peptidase 4,Felis catus,domestic cat,NM_001009838.1,NP_001009838.1,12012129,curated,,default-seq
+654491,DPP4,dipeptidyl peptidase 4,Macaca mulatta,Rhesus monkey,NM_001039190.2,NP_001034279.2,12012129,curated,,default-seq
+100022348,DPP4,dipeptidyl peptidase 4,Monodelphis domestica,gray short-tailed opossum,XM_007494267.2,XP_007494329.1,12012129,model,,default-seq
+100061124,DPP4,dipeptidyl peptidase 4,Equus caballus,horse,XM_023623018.1,XP_023478786.1,12012129,model,,default-seq
+100082186,DPP4,dipeptidyl peptidase 4,Ornithorhynchus anatinus,platypus,XM_029072243.1,XP_028928076.1,12012129,model,,default-seq
+100170324,DPP4,dipeptidyl peptidase 4,Ovis aries,sheep,XM_004004660.4,XP_004004709.1,12012129,model,,default-seq
+100173322,DPP4,dipeptidyl peptidase 4,Pongo abelii,Sumatran orangutan,XM_009237739.2,XP_009236014.1,12012129,model,,default-seq
+100341424,DPP4,dipeptidyl peptidase 4,Oryctolagus cuniculus,rabbit,XM_008258668.2,XP_008256890.1,13647865,model,,default-seq
+100393303,DPP4,dipeptidyl peptidase 4,Callithrix jacchus,white-tufted-ear marmoset,XM_002749392.3,XP_002749438.1,12012129,model,,default-seq
+100466928,DPP4,dipeptidyl peptidase 4,Ailuropoda melanoleuca,giant panda,XM_011231867.2,XP_011230169.1,12012129,model,,default-seq
+100605220,DPP4,dipeptidyl peptidase 4,Nomascus leucogenys,northern white-cheeked gibbon,XM_003266171.3,XP_003266219.1,12012129,model,,default-seq
+100662922,DPP4,dipeptidyl peptidase 4,Loxodonta africana,African savanna elephant,XM_023542885.1,XP_023398653.1,13647858,model,,default-seq
+100721104,Dpp4,dipeptidyl peptidase 4,Cavia porcellus,domestic guinea pig,XM_013142394.2,XP_012997848.1,12012129,model,,default-seq
+100768361,Dpp4,dipeptidyl peptidase 4,Cricetulus griseus,Chinese hamster,XM_027420319.1,XP_027276120.1,12012129,model,,default-seq
+100914547,DPP4,dipeptidyl peptidase 4,Sarcophilus harrisii,Tasmanian devil,XM_023499244.2,XP_023355012.1,12012129,model,,default-seq
+100942000,DPP4,dipeptidyl peptidase 4,Otolemur garnettii,small-eared galago,XM_023516350.1,XP_023372118.1,12012129,model,,default-seq
+100983437,DPP4,dipeptidyl peptidase 4,Pan paniscus,pygmy chimpanzee,XM_003820939.2,XP_003820987.1,12012129,model,,default-seq
+101023210,DPP4,dipeptidyl peptidase 4,Papio anubis,olive baboon,XM_021923667.2,XP_021779359.2,,model,,default-seq
+101041907,DPP4,dipeptidyl peptidase 4,Saimiri boliviensis,Bolivian squirrel monkey,XM_003921932.2,XP_003921981.1,12012129,model,,default-seq
+101140329,DPP4,dipeptidyl peptidase 4,Gorilla gorilla,western gorilla,XM_004032706.3,XP_004032754.3,,model,,default-seq
+101272821,DPP4,dipeptidyl peptidase 4,Orcinus orca,killer whale,XM_004283621.2,XP_004283669.1,12012129,model,,default-seq
+101320405,DPP4,dipeptidyl peptidase 4,Tursiops truncatus,common bottlenose dolphin,XM_019923172.1,XP_019778731.1,12012129,model,,default-seq
+101340446,LOC101340446,dipeptidyl peptidase 4,Trichechus manatus latirostris,Florida manatee,XM_004375425.2,XP_004375482.1,12012129,model,,default-seq
+101383326,DPP4,dipeptidyl peptidase 4,Odobenus rosmarus divergens,Pacific walrus,XM_004410199.2,XP_004410256.1,12012129,model,,default-seq
+101392268,LOC101392268,dipeptidyl peptidase 4,Ceratotherium simum simum,southern white rhinoceros,XM_014786020.1,XP_014641506.1,12012129,model,,default-seq
+101418034,DPP4,dipeptidyl peptidase 4,Dasypus novemcinctus,nine-banded armadillo,XM_004464407.3,XP_004464464.1,12012129,model,,default-seq
+101519820,DPP4,dipeptidyl peptidase 4,Ochotona princeps,American pika,XM_004577330.2,XP_004577387.1,12012129,model,,default-seq
+101556883,DPP4,dipeptidyl peptidase 4,Sorex araneus,European shrew,XM_004608172.1,XP_004608229.1,12012129,model,,default-seq
+101564569,Dpp4,dipeptidyl peptidase 4,Octodon degus,degu,XM_023713776.1,XP_023569544.1,12012129,model,,default-seq
+101615116,Dpp4,dipeptidyl peptidase 4,Jaculus jaculus,lesser Egyptian jerboa,XM_004651712.1,XP_004651769.1,12012129,model,,default-seq
+101622630,DPP4,dipeptidyl peptidase 4,Condylura cristata,star-nosed mole,XM_004674874.2,XP_004674931.1,12012129,model,,default-seq
+101650027,DPP4,dipeptidyl peptidase 4,Echinops telfairi,small Madagascar hedgehog,XM_013004956.1,XP_012860410.1,12012129,model,,default-seq
+101672664,DPP4,dipeptidyl peptidase 4,Mustela putorius furo,domestic ferret,XM_013051995.1,XP_012907449.1,12012129,model,,default-seq
+101722925,Dpp4,dipeptidyl peptidase 4,Heterocephalus glaber,naked mole-rat,XM_013076119.2,XP_012931573.1,12012129,model,,default-seq
+101955030,Dpp4,dipeptidyl peptidase 4,Ictidomys tridecemlineatus,thirteen-lined ground squirrel,XM_005315742.2,XP_005315799.1,12012129,model,,default-seq
+101988204,Dpp4,dipeptidyl peptidase 4,Microtus ochrogaster,prairie vole,XM_013346055.2,XP_013201509.1,12012129,model,,default-seq
+102019124,Dpp4,dipeptidyl peptidase 4,Chinchilla lanigera,long-tailed chinchilla,XM_005393318.2,XP_005393375.1,12012129,model,,default-seq
+102133935,DPP4,dipeptidyl peptidase 4,Macaca fascicularis,crab-eating macaque,XM_005573317.2,XP_005573374.1,12012129,model,,default-seq
+102184205,DPP4,dipeptidyl peptidase 4,Capra hircus,goat,XM_005676046.3,XP_005676103.1,12012129,model,,default-seq
+102253137,DPP4,dipeptidyl peptidase 4,Myotis brandtii,Brandt's bat,XM_005859372.2,XP_005859434.1,12012129,model,,default-seq
+102264961,DPP4,dipeptidyl peptidase 4,Bos mutus,wild yak,XM_005897282.2,XP_005897344.1,12012129,model,,default-seq
+102415213,DPP4,dipeptidyl peptidase 4,Bubalus bubalis,water buffalo,XM_025275905.1,XP_025131690.1,12012129,model,,default-seq
+102425390,DPP4,dipeptidyl peptidase 4,Myotis lucifugus,little brown bat,XM_014445986.2,XP_014301472.1,12012129,model,,default-seq
+102479789,DPP4,dipeptidyl peptidase 4,Tupaia chinensis,Chinese tree shrew,XM_006160270.2,XP_006160332.1,12012129,model,,default-seq
+102518715,DPP4,dipeptidyl peptidase 4,Camelus ferus,Wild Bactrian camel,XM_032479571.1,XP_032335462.1,,model,,default-seq
+102542089,DPP4,dipeptidyl peptidase 4,Vicugna pacos,alpaca,XM_015250239.2,XP_015105725.1,12012129,model,,default-seq
+102743918,DPP4,dipeptidyl peptidase 4,Leptonychotes weddellii,Weddell seal,XM_031030825.1,XP_030886685.1,,model,,default-seq
+102764554,DPP4,dipeptidyl peptidase 4,Myotis davidii,,XM_006766490.2,XP_006766553.1,12012129,model,,default-seq
+102825385,DPP4,dipeptidyl peptidase 4,Chrysochloris asiatica,Cape golden mole,XM_006866987.1,XP_006867049.1,12012129,model,,default-seq
+102852133,DPP4,dipeptidyl peptidase 4,Elephantulus edwardii,Cape elephant shrew,XM_006879485.1,XP_006879547.1,12012129,model,,default-seq
+102887619,DPP4,dipeptidyl peptidase 4,Pteropus alecto,black flying fox,XM_015596622.2,XP_015452108.1,12012129,model,,default-seq
+102915792,Dpp4,dipeptidyl peptidase 4,Peromyscus maniculatus bairdii,prairie deer mouse,XM_006984654.2,XP_006984716.1,12012129,model,,default-seq
+102971960,DPP4,dipeptidyl peptidase 4,Panthera tigris altaica,Amur tiger,XM_007078452.1,XP_007078514.1,12012129,model,,default-seq
+102995718,DPP4,dipeptidyl peptidase 4,Physeter catodon,sperm whale,XM_007105292.3,XP_007105354.1,12012129,model,,default-seq
+103006497,DPP4,dipeptidyl peptidase 4,Balaenoptera acutorostrata scammoni,,XM_007183309.1,XP_007183371.1,12012129,model,,default-seq
+103088488,DPP4,dipeptidyl peptidase 4,Lipotes vexillifer,Yangtze River dolphin,XM_007464494.1,XP_007464556.1,12012129,model,,default-seq
+103114154,DPP4,dipeptidyl peptidase 4,Erinaceus europaeus,western European hedgehog,XM_016188444.1,XP_016043930.1,12012129,model,,default-seq
+103197870,DPP4,dipeptidyl peptidase 4,Orycteropus afer afer,,XM_007941856.1,XP_007940047.1,12012129,model,,default-seq
+103217182,DPP4,dipeptidyl peptidase 4,Chlorocebus sabaeus,green monkey,XM_007965151.1,XP_007963342.1,12012129,model,,default-seq
+103250297,DPP4,dipeptidyl peptidase 4,Carlito syrichta,Philippine tarsier,XM_008048884.2,XP_008047075.1,12012129,model,,default-seq
+103283510,DPP4,dipeptidyl peptidase 4,Eptesicus fuscus,big brown bat,XM_028141092.1,XP_027996893.1,12012129,model,,default-seq
+103554423,DPP4,dipeptidyl peptidase 4,Equus przewalskii,Przewalski's horse,XM_008525459.1,XP_008523681.1,12012129,model,,default-seq
+103600668,DPP4,dipeptidyl peptidase 4,Galeopterus variegatus,Sunda flying lemur,XM_008585309.1,XP_008583531.1,12012129,model,,default-seq
+103659868,DPP4,dipeptidyl peptidase 4,Ursus maritimus,polar bear,XM_008687491.1,XP_008685713.1,12012129,model,,default-seq
+103744090,Dpp4,dipeptidyl peptidase 4,Nannospalax galili,Upper Galilee mountains blind mole rat,XM_008845754.3,XP_008843976.1,12012129,model,,default-seq
+104661281,DPP4,dipeptidyl peptidase 4,Rhinopithecus roxellana,golden snub-nosed monkey,XM_010361854.2,XP_010360156.1,12012129,model,,default-seq
+104850085,Dpp4,dipeptidyl peptidase 4,Fukomys damarensis,Damara mole-rat,XM_010606844.2,XP_010605146.1,12012129,model,,default-seq
+105002388,DPP4,dipeptidyl peptidase 4,Bison bison bison,,XM_010858964.1,XP_010857266.1,12012129,model,,default-seq
+105082002,DPP4,dipeptidyl peptidase 4,Camelus bactrianus,Bactrian camel,XM_010971448.1,XP_010969750.1,12012129,model,,default-seq
+105093689,DPP4,dipeptidyl peptidase 4,Camelus dromedarius,Arabian camel,XM_031451544.1,XP_031307404.1,,model,,default-seq
+105291033,DPP4,dipeptidyl peptidase 4,Pteropus vampyrus,large flying fox,XM_011358539.2,XP_011356841.1,12012129,model,,default-seq
+105483346,DPP4,dipeptidyl peptidase 4,Macaca nemestrina,pig-tailed macaque,XM_011744179.1,XP_011742481.1,12012129,model,,default-seq
+105515315,DPP4,dipeptidyl peptidase 4,Colobus angolensis palliatus,,XM_011947095.1,XP_011802485.1,12012129,model,,default-seq
+105547420,DPP4,dipeptidyl peptidase 4,Mandrillus leucophaeus,drill,XM_011991008.1,XP_011846398.1,12012129,model,,default-seq
+105576046,DPP4,dipeptidyl peptidase 4,Cercocebus atys,sooty mangabey,XM_012038557.1,XP_011893947.1,12012129,model,,default-seq
+105708865,DPP4,dipeptidyl peptidase 4,Aotus nancymaae,Ma's night monkey,XM_012440524.1,XP_012295947.1,12012129,model,,default-seq
+105819571,DPP4,dipeptidyl peptidase 4,Propithecus coquereli,Coquerel's sifaka,XM_012655850.1,XP_012511304.1,12012129,model,,default-seq
+105855041,DPP4,dipeptidyl peptidase 4,Microcebus murinus,gray mouse lemur,XM_012735717.2,XP_012591171.2,12012129,model,,default-seq
+105995413,Dpp4,dipeptidyl peptidase 4,Dipodomys ordii,Ord's kangaroo rat,XM_013029126.1,XP_012884580.1,12012129,model,,default-seq
+106021061,Dpp4,dipeptidyl peptidase 4,Mesocricetus auratus,golden hamster,NM_001310571.1,NP_001297500.1,12012129,curated,,default-seq
+106843167,DPP4,dipeptidyl peptidase 4,Equus asinus,ass,XM_014860096.1,XP_014715582.1,12012129,model,,default-seq
+106984589,DPP4,dipeptidyl peptidase 4,Acinonyx jubatus,cheetah,XM_015082793.2,XP_014938279.1,12012129,model,,default-seq
+107136886,Dpp4,dipeptidyl peptidase 4,Marmota marmota marmota,Alpine marmot,XM_015479253.1,XP_015334739.1,12012129,model,,default-seq
+107511738,DPP4,dipeptidyl peptidase 4,Rousettus aegyptiacus,Egyptian rousette,XM_016146439.1,XP_016001925.1,12012129,model,,default-seq
+107524885,DPP4,dipeptidyl peptidase 4,Miniopterus natalensis,,XM_016196976.1,XP_016052462.1,12012129,model,,default-seq
+108316875,DPP4,dipeptidyl peptidase 4,Cebus capucinus imitator,,XM_017547018.1,XP_017402507.1,12012129,model,,default-seq
+108399548,DPP4,dipeptidyl peptidase 4,Manis javanica,Malayan pangolin,XM_017664375.1,XP_017519864.1,12012129,model,,default-seq
+108517716,DPP4,dipeptidyl peptidase 4,Rhinopithecus bieti,black snub-nosed monkey,XM_017855805.1,XP_017711294.1,12012129,model,,default-seq
+109271956,DPP4,dipeptidyl peptidase 4,Panthera pardus,leopard,XM_019457684.1,XP_019313229.1,12012129,model,,default-seq
+109379863,DPP4,dipeptidyl peptidase 4,Hipposideros armiger,great roundleaf bat,XM_019636841.1,XP_019492386.1,12012129,model,,default-seq
+109575250,DPP4,dipeptidyl peptidase 4,Bos indicus,zebu cattle,XM_019983260.1,XP_019838819.1,12012129,model,,default-seq
+109696968,Dpp4,dipeptidyl peptidase 4,Castor canadensis,American beaver,XM_020180286.1,XP_020035875.1,12012129,model,,default-seq
+110130102,DPP4,dipeptidyl peptidase 4,Odocoileus virginianus texanus,,XM_020881845.1,XP_020737504.1,12012129,model,,default-seq
+110220755,DPP4,dipeptidyl peptidase 4,Phascolarctos cinereus,koala,XM_021004926.1,XP_020860585.1,12012129,model,,default-seq
+110286562,Dpp4,dipeptidyl peptidase 4,Mus caroli,Ryukyu mouse,XM_021152985.2,XP_021008644.1,12012129,model,,default-seq
+110317890,Dpp4,dipeptidyl peptidase 4,Mus pahari,shrew mouse,XM_021192699.2,XP_021048358.1,12012129,model,,default-seq
+110548640,Dpp4,dipeptidyl peptidase 4,Meriones unguiculatus,Mongolian gerbil,XM_021637079.1,XP_021492754.1,12012129,model,,default-seq
+110591850,DPP4,dipeptidyl peptidase 4,Neomonachus schauinslandi,Hawaiian monk seal,XM_021702790.1,XP_021558465.1,12012129,model,,default-seq
+111142158,LOC111142158,dipeptidyl peptidase 4,Enhydra lutris kenyoni,,XM_022495155.1,XP_022350863.1,12012129,model,,default-seq
+111172798,DPP4,dipeptidyl peptidase 4,Delphinapterus leucas,beluga whale,XM_022569882.2,XP_022425590.1,12012129,model,,default-seq
+111546068,DPP4,dipeptidyl peptidase 4,Piliocolobus tephrosceles,Ugandan red Colobus,XM_023217336.2,XP_023073104.1,12012129,model,,default-seq
+112322239,DPP4,dipeptidyl peptidase 4,Desmodus rotundus,common vampire bat,XM_024579835.1,XP_024435603.1,12012129,model,,default-seq
+112393566,DPP4,dipeptidyl peptidase 4,Neophocaena asiaeorientalis asiaeorientalis,Yangtze finless porpoise,XM_024735848.1,XP_024591616.1,12012129,model,,default-seq
+112636122,DPP4,dipeptidyl peptidase 4,Theropithecus gelada,gelada,XM_025404595.1,XP_025260380.1,12012129,model,,default-seq
+112674679,DPP4,dipeptidyl peptidase 4,Canis lupus dingo,dingo,XM_025471054.1,XP_025326839.1,12012129,model,,default-seq
+112871826,DPP4,dipeptidyl peptidase 4,Puma concolor,puma,XM_025934890.1,XP_025790675.1,12012129,model,,default-seq
+112916582,DPP4,dipeptidyl peptidase 4,Vulpes vulpes,red fox,XM_025994294.1,XP_025850079.1,12012129,model,,default-seq
+113185842,Dpp4,dipeptidyl peptidase 4,Urocitellus parryii,Arctic ground squirrel,XM_026393086.1,XP_026248871.1,12012129,model,,default-seq
+113250838,DPP4,dipeptidyl peptidase 4,Ursus arctos horribilis,,XM_026492677.1,XP_026348462.1,12012129,model,,default-seq
+113632576,DPP4,dipeptidyl peptidase 4,Lagenorhynchus obliquidens,Pacific white-sided dolphin,XM_027129826.1,XP_026985627.1,12012129,model,,default-seq
+113903322,DPP4,dipeptidyl peptidase 4,Bos indicus x Bos taurus,hybrid cattle,XM_027559292.1,XP_027415093.1,12012129,model,,default-seq
+113920743,DPP4,dipeptidyl peptidase 4,Zalophus californianus,California sea lion,XM_027591035.1,XP_027446836.1,12012129,model,,default-seq
+114045809,DPP4,dipeptidyl peptidase 4,Vombatus ursinus,common wombat,XM_027865989.1,XP_027721790.1,12012129,model,,default-seq
+114094806,Dpp4,dipeptidyl peptidase 4,Marmota flaviventris,yellow-bellied marmot,XM_027938002.1,XP_027793803.1,12012129,model,,default-seq
+114216528,DPP4,dipeptidyl peptidase 4,Eumetopias jubatus,Steller sea lion,XM_028113133.1,XP_027968934.1,12012129,model,,default-seq
+114494633,DPP4,dipeptidyl peptidase 4,Phyllostomus discolor,pale spear-nosed bat,XM_028509902.1,XP_028365703.1,12012129,model,,default-seq
+114622753,Dpp4,dipeptidyl peptidase 4,Grammomys surdaster,,XM_028769236.1,XP_028625069.1,12012129,model,,default-seq
+114702004,Dpp4,dipeptidyl peptidase 4,Peromyscus leucopus,white-footed mouse,XM_028882256.1,XP_028738089.1,12012129,model,,default-seq
+114896616,DPP4,dipeptidyl peptidase 4,Monodon monoceros,narwhal,XM_029224651.1,XP_029080484.1,12012129,model,,default-seq
+115287771,DPP4,dipeptidyl peptidase 4,Suricata suricatta,meerkat,XM_029934484.1,XP_029790344.1,,model,,default-seq
+115520638,DPP4,dipeptidyl peptidase 4,Lynx canadensis,Canada lynx,XM_030325200.1,XP_030181060.1,,model,,default-seq
+115851015,DPP4,dipeptidyl peptidase 4,Globicephala melas,long-finned pilot whale,XM_030852609.1,XP_030708469.1,,model,,default-seq
+116090229,Dpp4,dipeptidyl peptidase 4,Mastomys coucha,southern multimammate mouse,XM_031370422.1,XP_031226282.1,,model,,default-seq
+116557074,DPP4,dipeptidyl peptidase 4,Sapajus apella,Tufted capuchin,XM_032286554.1,XP_032142445.1,,model,,default-seq
+116597685,DPP4,dipeptidyl peptidase 4,Mustela erminea,ermine,XM_032355737.1,XP_032211628.1,,model,,default-seq
+116635480,DPP4,dipeptidyl peptidase 4,Phoca vitulina,harbor seal,XM_032409468.1,XP_032265359.1,,model,,default-seq

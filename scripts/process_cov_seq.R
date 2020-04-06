@@ -204,7 +204,36 @@ n_cov_seq <- allcov_df %>% filter(n_seqs > 0) %>% nrow # n coronaviruses with at
 n_cov_seq_eid2 <- allcov_df %>% filter(n_seqs > 0 & Hostspp > 0) %>% nrow # n coronaviruses with at least 1 sequence and at least 1 EID2 host
 n_seq <- allcov_meta_df %>% nrow # n nucleotide sequence entries
 n_cds <- cov_enc_df %>% nrow # n coding sequences
-# 
+
+# 492 viruses should have complete spike protein based on metadata, but only 420 do based on the cds labels in the FASTA!miss_spike <- tab492[!(tab492 %in% tab420)]
+tab420 <- allcov_df %>% filter(!is.na(n_S) & n_S > 0) %>% .$childtaxa_id
+tab492 <-  allcov_meta_df %>% group_by(taxid, complete) %>% count(complete) %>% spread(complete, n, fill=0) %>% rename_at(vars(-taxid), ~ paste0("n_",.)) %>% filter(n_complete_spike > 0 | n_whole_genome > 0) %>% .$taxid %>% as.character
+
+miss_spike <- tab492[!(tab492 %in% tab420)] # Identify taxids missing the spike protein
+
+allcov_df %>% filter(childtaxa_id %in% miss_spike) %>% .$n_other %>% table(exclude = FALSE) # 8 come through in other sequences, but 64 have NAs
+
+# For the 8, metadata describes them as complete genome...
+
+allcov_meta_df %>% filter(taxid %in% (allcov_df %>% filter(childtaxa_id %in% miss_spike & !(is.na(n_other))) %>% .$childtaxa_id)) %>% .$title
+
+# ...yet they don't have any spike proteins (or none annotated)!
+
+cov_enc_df %>% filter(taxid %in% (allcov_df %>% filter(childtaxa_id %in% miss_spike & !(is.na(n_other))) %>% .$childtaxa_id)) %>% .$protein
+
+# For the 64 - entrez_fetch just.. fails to fetch them and returns blanks???
+
+allcov_meta_df %>% filter(taxid %in% (allcov_df %>% filter(childtaxa_id %in% miss_spike & is.na(n_other)) %>% .$childtaxa_id)) %>% .$uid %>% as.character %>% entrez_fetch(db = "nuccore",id = ., rettype="fasta_cds_na")
+
+# So 420 is the correct number of viruses with a spike protein...
+sum(allcov_df$n_S, na.rm=TRUE) # 5213 individual spike protein sequences
+
+
+
+
+
+
+
 # ###########################################################
 # # Prep files to run VirusFeatures (R Orton, Java program) #
 # ###########################################################
