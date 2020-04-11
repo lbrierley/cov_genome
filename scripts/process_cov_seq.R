@@ -100,7 +100,7 @@ allcov_meta_df %<>% mutate(complete = case_when(
   metadata_title_cleaner(title) == "complete"  ~ "complete_spike",
   grepl("partial", title, ignore.case=TRUE) ~ "partial_spike",           # If the complex metadata cleaner can't assign it (which is only 3% of records) then just do a simple search match
   grepl("complete", title, ignore.case=TRUE) ~ "complete_spike")) %>% 
- replace_na(list(complete = "complete_spike"))                           # Else no mention of completeness (which is only 0.3% of records), then just assume complete spike
+  replace_na(list(complete = "complete_spike"))                           # Else no mention of completeness (which is only 0.3% of records), then just assume complete spike
 
 ## Code to assist choosing regexp for assigning complete
 # table(allcov_meta_df$completeness, exclude = NULL) #MOST NOT LABELLED
@@ -111,13 +111,27 @@ allcov_meta_df %<>% mutate(complete = case_when(
 cov_cord <- readSet(file="data\\allcov_GenBank.fasta")
 
 # Construct summary df for individual cds
-cov_enc_df <- data.frame(title = cov_cord %>% names(),
-                         accession = cov_cord %>% names() %>% str_match("lcl\\|(.*?)_cds_") %>% .[,2] %>% as.character,
-                         gene = cov_cord %>% names() %>% str_match("\\[gene=(.*?)\\]") %>% .[,2],
-                         protein = cov_cord %>% names() %>% str_match("\\[protein=(.*?)\\]") %>% .[,2],
+cov_enc_df <- data.frame(title = cov_cord %>% names,
+                         accession = cov_cord %>% names %>% str_match("lcl\\|(.*?)_cds_") %>% .[,2] %>% as.character,
+                         gene = cov_cord %>% names %>% str_match("\\[gene=(.*?)\\]") %>% .[,2],
+                         protein = cov_cord %>% names %>% str_match("\\[protein=(.*?)\\]") %>% .[,2],
                          length = cov_cord %>% width,
-                         enc = cov_cord %>% codonTable %>% ENC(stop.rm=FALSE)) %>% # Calculate Effective Number of Codons (including STOP codons)
-  cbind(alphabetFrequency(cov_cord, as.prob = TRUE)[,1:4])
+                         enc = cov_cord %>% codonTable %>% ENC(stop.rm=FALSE),              # Calculate Effective Number of Codons (including STOP codons)
+                         cov_cord %>% letterFrequency("GC",as.prob=TRUE)*100 %>% as.vector, # Calculate % GC content
+                         cov_cord %>% letterFrequency(c("A","C","G","T")),                  # Nucleotide counts
+                         cov_cord %>% dinucleotideFrequency,                                # Dinucleotide counts
+                         cov_cord %>% DNAStringSet(start=1) %>% 
+                           dinucleotideFrequency(step = 3) %>% as.data.frame %>%
+                           rename_all(., ~ paste0(., "_p1")),                               # Dinucleotide counts between positions 1-2 only
+                         cov_cord %>% DNAStringSet(start=2) %>% 
+                           dinucleotideFrequency(step = 3) %>% as.data.frame %>%
+                           rename_all(., ~ paste0(., "_p2")),                               # Dinucleotide counts between positions 2-3 only
+                         cov_cord %>% DNAStringSet(start=3) %>% 
+                           dinucleotideFrequency(step = 3) %>% as.data.frame %>%
+                           rename_all(., ~ paste0(., "_p3")),                               # Dinucleotide counts between positions 3-1 only
+                         cov_cord %>% codonTable %>% codonCounts                            # Codon counts
+#                        cov_cord %>% oligonucleotideFrequency(6, step=3)                   # Codon pair counts - NOT USING FOR NOW
+) %>% rename_at(vars(G.C), ~ "GC_content")
 
 cov_enc_df %>% filter(is.na(protein)) %>% nrow # n missing protein annotation
 cov_enc_df %>% filter(is.na(gene)) %>% nrow # n missing gene annotation
@@ -157,7 +171,7 @@ allcov_df <- merge(allcov_df,
                          cov_enc_df %>% 
                            filter(include == "Y" & complete != "partial_spike") %>% 
                            group_by(taxid, seqtype) %>% 
-                           summarise(mean_length = mean(length)) %>% 
+                           summarise(mean_length = mean(length, na.rm=TRUE)) %>% 
                            spread(seqtype, mean_length) %>% 
                            rename_at(vars(-taxid), ~ paste0("mean_length_",.)) %>% 
                            as.data.frame %>%
@@ -165,7 +179,7 @@ allcov_df <- merge(allcov_df,
                          cov_enc_df %>% 
                            filter(include == "Y" & complete != "partial_spike") %>% 
                            group_by(taxid, seqtype) %>% 
-                           summarise(mean_enc = mean(enc)) %>% 
+                           summarise(mean_enc = mean(enc, na.rm=TRUE)) %>% 
                            spread(seqtype, mean_enc) %>% 
                            rename_at(vars(-taxid), ~ paste0("mean_enc_",.)) %>% 
                            as.data.frame %>%
@@ -173,7 +187,7 @@ allcov_df <- merge(allcov_df,
                          cov_enc_df %>% 
                            filter(include == "Y" & complete != "partial_spike") %>% 
                            group_by(taxid, seqtype) %>% 
-                           summarise(mean_GC = mean(G+C)) %>% 
+                           summarise(mean_GC = mean(GC_content, na.rm=TRUE)) %>% 
                            spread(seqtype, mean_GC) %>% 
                            rename_at(vars(-taxid), ~ paste0("mean_GC_",.)) %>% 
                            as.data.frame %>%
@@ -182,17 +196,63 @@ allcov_df <- merge(allcov_df,
                    by.y = "taxid",
                    all.x = TRUE)
 
-# Calculate mean length of complete genomes per coronavirus taxid and merge with main dataset
+# Calculate mean length of whole genomes per coronavirus taxid and merge with main dataset
 
 allcov_df <- merge(allcov_df,
                    allcov_meta_df %>% 
                      filter(complete == "whole_genome") %>% 
                      group_by(taxid) %>% 
-                     summarise(mean_wgs_length = mean(length)) %>% 
+                     summarise(mean_wgs_length = mean(length, na.rm=TRUE)) %>% 
                      as.data.frame,
                    by.x = "childtaxa_id",
                    by.y = "taxid",
                    all.x = TRUE)
+
+# Calculate mean enc, GC content of complete genomes per coronavirus taxid and merge with main dataset
+
+wg_df <- cov_enc_df %>% 
+  filter(include == "Y") %>% 
+  group_by(accessionversion) %>% 
+  summarise_at(vars(matches("^[A|C|G|T]$|^[A|C|G|T][A|C|G|T]$|^[A|C|G|T][A|C|G|T][A|C|G|T]$")), funs(sum)) %>% # Calculate nuc, dinuc, codon counts over entire sequence (including all proteins)
+  mutate(GC_content = 100*(G+C)/(A+C+G+T))
+
+wg_df$enc <- wg_df %>% select(matches("^[A|C|G|T][A|C|G|T][A|C|G|T]$")) %>% codonTable() %>% ENC
+
+allcov_df <- merge(allcov_df,
+                   merge(cov_enc_df %>% select(taxid, accessionversion),
+                         wg_df,
+                         by = "accessionversion",
+                         all.x = TRUE) %>% 
+                     filter(accessionversion %in% (allcov_meta_df %>% filter(complete == "whole_genome") %>% .$accessionversion)) %>%
+                     group_by(taxid) %>% 
+                     summarise(mean_wgs_enc = mean(enc, na.rm=TRUE),
+                               mean_wgs_GC = mean(GC_content, na.rm=TRUE)),
+                   by.x = "childtaxa_id",
+                   by.y = "taxid",
+                   all.x = TRUE)
+
+# Better to plot length/GC/ENC of ALL whole genomes than mean within taxid?
+
+
+
+# ### why is mean_wgs_enc != mean_wgs_length in terms of NAs? it's those missing sequences again - probably want to investigate this a little as it is 78 viruses!
+# hi <- allcov_meta_df %>% filter(complete == "whole_genome") %>% distinct(accessionversion) %>% .$accessionversion
+# # 2954
+# lo <- wg_df %>% filter(accessionversion %in% (allcov_meta_df %>% filter(complete == "whole_genome") %>% .$accessionversion)) %>% .$accessionversion
+# # 2876
+# allcov_meta_df %>% filter(accessionversion %in% hi[!(hi %in% lo)]) %>% .$uid %>%  entrez_fetch(db = "nuccore",id = ., rettype="fasta_cds_na")
+# 
+# # length is pulled from metadata,  whereas GC/ENC must be taken from sequence, so even if it returns "/n" we can still get length
+# allcov_df %>% filter(!is.na(mean_wgs_length)) %>% nrow
+# allcov_df %>% filter(!is.na(mean_wgs_GC)) %>% nrow
+# 
+# missingids <- allcov_df %>% filter(!is.na(mean_wgs_length) & is.na(mean_wgs_GC)) %>% .$childtaxa_id
+# missingaccession <- allcov_meta_df %>% filter(taxid %in% missingids & complete == "whole_genome") %>% .$accessionversion
+# allcov_meta_df %>% filter(accessionversion %in% missingaccession) %>% .$uid
+# 
+# # just pulling in "\n"...  THE REASON IS THE SEQUENCES ARE NOT ACTUALLY ANNOTATED WITH CODING SEQUENCE REGIONS AND NONCODING SEQUENCE REGIONS
+# IF WE REALLY NEED THESE I SUPPOSE WE COULD TRY ALIGNING?
+# CAN THEY BE FILTERED EARLIER TO KEEP NUMBERS UPDATED, E.G. IN ENTREZ_SEARCH AND ENTREZ_SUMMARY
 
 #################################
 # Calculate values of interest  #
@@ -228,58 +288,146 @@ allcov_meta_df %>% filter(taxid %in% (allcov_df %>% filter(childtaxa_id %in% mis
 # So 420 is the correct number of viruses with a spike protein...
 sum(allcov_df$n_S, na.rm=TRUE) # 5213 individual spike protein sequences
 
+#################################
+# Calculate values of interest  #
+#################################
+
+# Filter dataset to final complete spike protein dataset
+cov_spikes_df <- cov_enc_df %>% filter(seqtype == "S" & include == "Y" & complete != "partial_spike")
+
+#######################################
+# Calculate genome composition biases #
+#######################################
+
+# Calculate amino acid frequencies
+for (i in 1:length(unique(codon_ref$aminoacid))) {
+  cov_spikes_df[, paste0(unique(codon_ref$aminoacid)[i], "_aa")] <- 
+    cov_spikes_df %>% select(subset(codon_ref, aminoacid == unique(codon_ref$aminoacid)[i])$codon) %>% rowSums()
+}
+
+# Calculate total dinucleotides (pos 1-2, pos 2-3, pos 3-1), total codons
+cov_spikes_df %<>% mutate(n_dinucs = (select(., matches("^[A|C|G|T][A|C|G|T]$")) %>% rowSums),
+                          n_dinucs_p1 = (select(., matches("^[A|C|G|T][A|C|G|T]_p1$")) %>% rowSums),
+                          n_dinucs_p2 = (select(., matches("^[A|C|G|T][A|C|G|T]_p2$")) %>% rowSums),
+                          n_dinucs_p3 = (select(., matches("^[A|C|G|T][A|C|G|T]_p3$")) %>% rowSums),
+                         n_codons = (select(., matches("^[A|C|G|T][A|C|G|T][A|C|G|T]$")) %>% rowSums))
+
+# Calculate nucleotide biases
+cov_spikes_df %<>% mutate_at(vars(matches("^[A|C|G|T]$")), .funs = list(Bias = ~./length))
 
 
+# # MUST BE A DPLYR MUTATE AT WAY OF DOING THIS
+# cocoputs_dinucs %>%
+#   mutate_at(vars(matches("^[A|T|G|C|U]p[A|T|G|C|U]$")), funs(
+#     (./X..Dinucleotides)/ # Numerator, Nxy/Dtot
+#       (!!parse_quosure(deparse(substitute(.)) %>% substr(1,1))/X..Nucleotides * # Denominator, Nx/Ntot, extracting nucleotide X from col name
+#          !!parse_quosure(deparse(substitute(.)) %>% substr(3,3))/X..Nucleotides) # Denominator, Ny/Ntot, extracting nucleotide Y from col name
+#   ))
+# # Should work but object v not found? Comes back to nonstandard evaluation, a topic that seems tricky to get a full handle on
+
+# Calculate dinucleotide biases
+for (i in 1:ncol(cov_spikes_df)) {
+
+  focalcol <- colnames(cov_spikes_df)[i]
+  
+  if (grepl("^[A|C|G|T][A|C|G|T]$",focalcol)){
+    cov_spikes_df[, paste0(focalcol, "_Bias")] <- 
+      (cov_spikes_df[,i]/cov_spikes_df$n_dinucs)/
+      (cov_spikes_df[,substr(focalcol,1,1)]/cov_spikes_df$length * cov_spikes_df[,substr(focalcol,2,2)] / cov_spikes_df$length)
+  }
+}
+
+# Calculate dinucleotide biases separately for positions 1-2, 2-3, 3-1
+# But first, need to calculate nucleotide frequencies for these positions - PROBABLY OUGHT TO RUN THIS THROUGH CAREFULLY JUST TO TEST
+for (nuc in c("A","C","G","T")){
+  cov_spikes_df[paste0(nuc,"_p1")] <- apply(cov_spikes_df %>% select(matches("^[A|C|G|T][A|C|G|T]_p1$")),     # Select only columns describing dinucleotides at position 1-2
+                                            1, function(x) x %*% (cov_spikes_df %>% select(matches("^[A|C|G|T][A|C|G|T]_p1$")) %>% names %>% str_count(nuc)))   # Use dot product to calculate number of respective nucleotides at position 1-2
+  
+  cov_spikes_df[paste0(nuc,"_p2")] <- apply(cov_spikes_df %>% select(matches("^[A|C|G|T][A|C|G|T]_p2$")),     # Select only columns describing dinucleotides at position 2-3
+                                            1, function(x) x %*% (cov_spikes_df %>% select(matches("^[A|C|G|T][A|C|G|T]_p2$")) %>% names %>% str_count(nuc)))   # Use dot product to calculate number of respective nucleotides at position 2-3
+  
+  cov_spikes_df[paste0(nuc,"_p3")] <- apply(cov_spikes_df %>% select(matches("^[A|C|G|T][A|C|G|T]_p3$")),     # Select only columns describing dinucleotides at position 3-1
+                                            1, function(x) x %*% (cov_spikes_df %>% select(matches("^[A|C|G|T][A|C|G|T]_p3$")) %>% names %>% str_count(nuc)))   # Use dot product to calculate number of respective nucleotides at position 3-1
+}
+
+for (i in 1:ncol(cov_spikes_df)) {
+  
+  focalcol <- colnames(cov_spikes_df)[i]
+  
+  if (grepl("^[A|C|G|T][A|C|G|T]_p1$",focalcol)){
+    cov_spikes_df[, paste0(focalcol, "_p1_Bias")] <- 
+      (cov_spikes_df[,i]/cov_spikes_df$n_dinucs_p1)/
+      (cov_spikes_df[,paste0(substr(focalcol,1,1),"_p1")]/cov_spikes_df$length * cov_spikes_df[,paste0(substr(focalcol,2,2),"_p1")] / cov_spikes_df$length)
+  } else if (grepl("^[A|C|G|T][A|C|G|T]_p2$",focalcol)){
+    cov_spikes_df[, paste0(focalcol, "_p2_Bias")] <- 
+      (cov_spikes_df[,i]/cov_spikes_df$n_dinucs_p2)/
+      (cov_spikes_df[,paste0(substr(focalcol,1,1),"_p2")]/cov_spikes_df$length * cov_spikes_df[,paste0(substr(focalcol,2,2),"_p2")] / cov_spikes_df$length)
+  } else   if (grepl("^[A|C|G|T][A|C|G|T]_p3$",focalcol)){
+    cov_spikes_df[, paste0(focalcol, "_p3_Bias")] <- 
+      (cov_spikes_df[,i]/cov_spikes_df$n_dinucs_p3)/
+      (cov_spikes_df[,paste0(substr(focalcol,1,1),"_p3")]/cov_spikes_df$length * cov_spikes_df[,paste0(substr(focalcol,2,2),"_p3")] / cov_spikes_df$length)
+  }
+}
 
 
+# Calculate codon biases
+for (i in 1:ncol(cov_spikes_df)) {
+  
+  focalcol <- colnames(cov_spikes_df)[i]
+  
+  if (grepl("^[A|C|G|T][A|C|G|T][A|C|G|T]$",focalcol)){
+    cov_spikes_df[, paste0(focalcol, "_Bias")] <- 
+      cov_spikes_df[,i]/(cov_spikes_df %>%
+                             select(subset(codon_ref, aminoacid == subset(codon_ref, codon == focalcol)$aminoacid)$codon) %>%
+                             rowSums())
+  }
+}
 
 
-# ###########################################################
-# # Prep files to run VirusFeatures (R Orton, Java program) #
-# ###########################################################
+# Calculate amino acid biases - denominator uses total amino acids, including stop codons, so can just use total codons
+for (i in 1:length(unique(codon_ref$aminoacid))) {
+  cov_spikes_df[, paste0(unique(codon_ref$aminoacid)[i], "_aa_Bias")] <- 
+    cov_spikes_df[, paste0(unique(codon_ref$aminoacid)[i], "_aa")]/cov_spikes_df$n_codons
+}
+
+
+# # Calc codon pair bias as log (freq codon pair)/((freq codon A*freq codon B/freq aacid A*freq aacid B) * freq aacid pair) following Coleman et al. 2008
+# # WORKS - BUT NOT CURRENTLY USING
+#
+# # Calculate codon pair biases
+# for (i in 1:nrow(codon_ref)) {
+#   for (j in 1:nrow(codon_ref)) {
+#     
+#     # Calculate frequency of pairs of corresponding amino acids for codons i and j  
+#     aminoacidpaircounts <- cov_spikes_df %>% 
+#       select(do.call(paste0, 
+#                      expand.grid(codon_ref %>% subset(aminoacid == codon_ref$aminoacid[i]) %>% .$codon,
+#                                  codon_ref %>% subset(aminoacid == codon_ref$aminoacid[j]) %>% .$codon))) %>% rowSums()
+#     
+#     cov_spikes_df[, paste0(codon_ref$codon[i], "_", codon_ref$codon[j], "_Bias")] <- 
+#       log(
+#         cov_spikes_df[, paste0(codon_ref$codon[i], codon_ref$codon[j])]/
+#           (((cov_spikes_df[, codon_ref$codon[i]]*cov_spikes_df[, codon_ref$codon[j]])/
+#               (cov_spikes_df[, paste0(codon_ref$aminoacid[i], "_aa")]*cov_spikes_df[, paste0(codon_ref$aminoacid[j], "_aa")]))*
+#              aminoacidpaircounts))
+#     
+#     # If frequency of codon pair = 0 but frequency of amino acid pair != 0 specifiy codon pair bias as NA as a marker to replace later
+#     cov_spikes_df[which(aminoacidpaircounts != 0 & cov_spikes_df[, paste0(codon_ref$codon[i], codon_ref$codon[j])] == 0), paste0(codon_ref$codon[i], "_", codon_ref$codon[j], "_Bias")] <- NA
+#     
+#   }
+# }
 # 
-# # Write accesions/taxids/names to file for VirusFeatures
-# # SCOPE HERE TO WRITE THE ACCESSION NUMBERS IN EARLIER INTO TAX_MATCHING_DF AND PROCESS THESE WITHOUT EXTRACTING HERE?
-# accessions_table <- data.frame(
-#   genaccession = unlist(lapply(RefSeq_found_summaries, function(x) extract_from_esummary(x, "oslt")))[c(FALSE,TRUE)],
-#   taxid = unlist(lapply(RefSeq_found_summaries, function(x) extract_from_esummary(x, "taxid"))),
-#   title = unlist(lapply(RefSeq_found_summaries, function(x) extract_from_esummary(x, "title")))
-# )
+# # Below calculations are easily changeable!
+# # Work out column of mean codon pair bias per virus across all non-NaN and non-NA values
+# cov_spikes_df %<>% mutate(mean_CPB = rowMeans(select(., (matches("^[A|C|G|T][A|C|G|T][A|C|G|T]_[A|C|G|T][A|C|G|T][A|C|G|T]_Bias$"))), na.rm=TRUE))
 # 
-# # Cross-reference and append taxonomic family of each virus
-# accessions_table <- merge(accessions_table, 
-#                           tax_matching_df %>% 
-#                             select(chosen_refseq_taxid, family_name),
-#                           by.x = "taxid",
-#                           by.y = "chosen_refseq_taxid",
-#                           all.x = TRUE)
+# # Do it not including pairs involving stop codons
+# cov_spikes_df %<>% mutate(mean_CPB_nostop = rowMeans(select(., matches("^[A|C|G|T][A|C|G|T][A|C|G|T]_[A|C|G|T][A|C|G|T][A|C|G|T]_Bias$"), -matches("TGA|TAG|TAA")), na.rm=TRUE))
+# cov_spikes_df %<>% mutate(mean_CPB_nostop1 = rowMeans(select(., matches("^[A|C|G|T][A|C|G|T][A|C|G|T]_[A|C|G|T][A|C|G|T][A|C|G|T]_Bias$"), -matches("^TGA|^TAG|^TAA")), na.rm=TRUE))
+# cov_spikes_df %<>% mutate(mean_CPB_nostop2 = rowMeans(select(., matches("^[A|C|G|T][A|C|G|T][A|C|G|T]_[A|C|G|T][A|C|G|T][A|C|G|T]_Bias$"), -matches("TGA.Bias|TAG.Bias|TAA.Bias")), na.rm=TRUE))
 # 
-# # VirusFeatures program only considers sequences to belong to the same virus if they fall under the same accession number
-# # Manually editing accession numbers from here such that sequences are correctly grouped
+# # Following Babayan et al. rules: if frequency of amino acid pair = 0 replace NaN with mean codon pair bias
+# cov_spikes_df %<>% mutate_at(vars(matches("^[A|C|G|T][A|C|G|T][A|C|G|T]_[A|C|G|T][A|C|G|T][A|C|G|T]_Bias$")), ~ifelse(is.nan(.), mean_CPB, .))
 # 
-# # Identify the first accession number for each taxid and add as a new column
-# accessions_table <- merge(x=accessions_table, 
-#                           y=accessions_table %>% 
-#                             select(genaccessionref = genaccession, taxid, -title) %>%
-#                             group_by(taxid) %>% 
-#                             arrange(genaccessionref) %>% 
-#                             slice(1) %>% 
-#                             ungroup(),
-#                           by="taxid")
-# 
-# # Read FASTA file back to adjust format
-# f <- read.fasta("RefSeq_EID2.fasta")
-# 
-# # Manually replace existing accession numbers in the fasta
-# pattern <- as.character(accessions_table$genaccession)
-# replace <- as.character(accessions_table$genaccessionref)
-# names(replace) <- pattern
-# names(f) <- str_replace_all(names(f), replace)
-# # seqinr's write feature can save as single-line FASTA
-# write.fasta(f, names(f), nbchar=1e+16, file="VirusFeatures\\RefSeq_EID2_VirusFeatures.fasta")
-# 
-# # Write a cleaned up version of the accession table
-# write.table(subset(accessions_table, genaccession %in% genaccessionref,
-#                    select = c(genaccession, taxid, title, family_name)),
-#             file="VirusFeatures\\RefSeq_EID2_accessions.txt", 
-#             sep="\t", row.names=FALSE, col.names=FALSE, quote=FALSE)
+# # Following Babayan et al. rules: if frequency of codon pair = 0 but frequency of amino acid pair != 0 replace NA with -9999 to indicate extreme underrepresentation
+# cov_spikes_df %<>% mutate_at(vars(matches("^[A|C|G|T][A|C|G|T][A|C|G|T]_[A|C|G|T][A|C|G|T][A|C|G|T]_Bias$")),~ifelse(is.na(.), -9999, .))
