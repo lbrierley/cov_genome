@@ -9,7 +9,7 @@ rm(list=ls())
 
 library(Biostrings)
 library(coRdon)
-library(ggalluvial)
+library(ggbiplot)
 library(ggmosaic)
 library(knitr)
 library(lattice)
@@ -40,6 +40,7 @@ set_entrez_key("7e8a75a8d92089428e7489e7dc2ea85b0708")
 # Format a reference table of codons, amino acids and degeneracy values
 codon_ref <- data.frame(aminoacid = Biostrings::GENETIC_CODE) %>%
   rownames_to_column("codon") %>%
+  mutate(aminoacid = gsub("\\*","X",aminoacid)) %>%     # replace stop codon symbol "*" as "X"
   group_by(aminoacid) %>%
   mutate(deg = n())
 
@@ -101,6 +102,18 @@ metadata_title_cleaner <- function(x){
              word(., -1))                                       # save whether partial or complete (which should be last word in string)
 }
 
+genome_biplot <- function(pca, outcome){
+  g <- ggbiplot(pca,
+                groups = cov_pca_df[,outcome],
+                ellipse = TRUE,
+                alpha = 0.4,
+                varname.abbrev=TRUE) +
+    geom_point(alpha=0, aes(fill= cov_pca_df[,outcome], label=cov_pca_df$childtaxa_name)) +
+    theme(legend.position='none') +
+    theme_bw()
+  ggplotly(g) %>% hide_legend()
+}
+
 ###############
 # Run scripts #
 ###############
@@ -111,3 +124,7 @@ source("scripts\\process_cov_seq.R" )
 # Render lab books
 render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\data_summary.Rmd", 
        output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\data_summary.html")
+
+render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output.Rmd", 
+       output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output.html")
+

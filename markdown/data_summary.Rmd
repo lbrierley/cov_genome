@@ -69,12 +69,12 @@ Host groups are mutually exclusive, i.e. primates = non-human primates. Other ma
 
 ```{r plot_hostcount, results="asis", fig.height=7.0, fig.width=10.0}
 ggplot(data.frame(host = allcov_df %>% filter(n_seqs > 0) %>% select(starts_with("h_")) %>%
-               colnames(),
-           count = allcov_df %>% filter(n_seqs > 0) %>% select(starts_with("h_")) %>% 
-               sapply(function(x) x %>% 
-                          as.character() %>% 
-                          as.numeric()) %>%
-               colSums()),
+                    colnames(),
+                  count = allcov_df %>% filter(n_seqs > 0) %>% select(starts_with("h_")) %>% 
+                    sapply(function(x) x %>% 
+                             as.character() %>% 
+                             as.numeric()) %>%
+                    colSums()),
        aes(x = host, y = count)) +
   geom_bar(stat="identity") +
   scale_y_continuous(expand = c(0,0), limits = c(0,40)) +
@@ -124,32 +124,179 @@ ggplot(allcov_df, aes(x = mean_wgs_length)) +
   theme_bw()
 ```
 
-*Mean lengths, ENC, GC content of spike proteins compared to other proteins:*
+*Lengths, ENC, GC content between-coronaviruses in spike and other proteins; within-coronaviruses in spike:*
 
-```{r plot_length_enc_gc, results="asis", layout="l-body-outset", fig.height=9.0, fig.width=10.0}
-g2 <- ggplot(allcov_df %>% select(mean_length_other, mean_length_S) %>% melt, aes(x = value, fill = variable)) +  
+```{r plot_length, results="asis", layout="l-body-outset", fig.height=9.0, fig.width=10.0}
+g_len_1 <- ggplot(allcov_df %>% select(mean_length_other, mean_length_S) %>% melt, aes(x = value, fill = variable)) +  
   geom_density(alpha = 0.6) +
   scale_fill_discrete(name = "protein", labels = c(paste0("other (n = ",allcov_df %>% filter(!is.na(mean_length_other)) %>% nrow,")"),
                                                    paste0("spike (n = ",allcov_df %>% filter(!is.na(mean_length_S)) %>% nrow,")"))) +
   xlab("mean coding sequence length (bases)") +
+  coord_cartesian(xlim=c(0,12000), expand=FALSE) +
   theme_bw(base_size = 14)
 
-g3 <- ggplot(allcov_df %>% select(mean_enc_other, mean_enc_S) %>% melt, aes(x = value, fill = variable)) +  
+g_len_2 <- ggplot(cov_spikes_df %>% filter(taxid %in% (allcov_df %>% filter(n_S > 4) %>% .$childtaxa_id)) %>% mutate(taxid = abbreviate(taxid2name(taxid))), 
+                  aes(x = taxid, y = length, fill = taxid)) +  
+  geom_boxplot(outlier.size = 0.3) +
+  guides(fill = FALSE) +
+  coord_flip(ylim=c(0,12000), expand=FALSE) +
+  xlab("virus (only those w/ >= 5 spike seqs)") +
+  ylab("spike coding sequence length (bases)") +
+  theme_bw(base_size = 14) +
+  theme(panel.grid.major.y = element_blank())
+
+g_len_1 + g_len_2 + plot_layout(ncol=1,heights=c(1,2))
+```
+
+```{r}
+anova(lm(length ~ taxid, data=cov_spikes_df))
+```
+
+**Fairly consistent sequence lengths of spikes compared to other proteins (expected as pooling all others). Very little within-coronavirus variation.**  
+
+
+```{r plot_enc, results="asis", layout="l-body-outset", fig.height=9.0, fig.width=10.0}
+g_enc_1 <- ggplot(allcov_df %>% select(mean_enc_other, mean_enc_S) %>% melt, aes(x = value, fill = variable)) +  
   geom_density(alpha = 0.6) +
   scale_fill_discrete(name = "protein", labels = c(paste0("other (n = ",allcov_df %>% filter(!is.na(mean_enc_other)) %>% nrow,")"),
                                                    paste0("spike (n = ",allcov_df %>% filter(!is.na(mean_enc_S)) %>% nrow,")"))) +
   xlab("mean effective number of codons (ENC)") +
+  coord_cartesian(xlim=c(33,60), expand=FALSE) +
   theme_bw(base_size = 14)
 
-g4 <- ggplot(allcov_df %>% select(mean_GC_other, mean_GC_S) %>% melt, aes(x = value*100, fill = variable)) +  
+g_enc_2 <- ggplot(cov_spikes_df %>% filter(taxid %in% (allcov_df %>% filter(n_S > 4) %>% .$childtaxa_id)) %>% mutate(taxid = abbreviate(taxid2name(taxid))), 
+                  aes(x = taxid, y = enc, fill = taxid)) +  
+  geom_boxplot(outlier.size = 0.3) +
+  guides(fill = FALSE) +
+  coord_flip(ylim=c(33,60), expand=FALSE) +
+  xlab("virus (only those w/ >= 5 spike seqs)") +
+  ylab("effective number of codons (ENC)") +
+  theme_bw(base_size = 14) +
+  theme(panel.grid.major.y = element_blank())
+
+g_enc_1 + g_enc_2 + plot_layout(ncol=1,heights=c(1,2))
+```
+
+```{r}
+anova(lm(enc ~ taxid, data=cov_spikes_df))
+```
+
+**Stronger average codon bias in spike than other proteins! Reasonable variation in spike codon biases between-coronaviruses and within some coronaviruses. Human CoV HKU1 more strongly biased than other CoVs.**  
+
+
+```{r plot_gc, results="asis", layout="l-body-outset", fig.height=9.0, fig.width=10.0}
+g_gc_1 <- ggplot(allcov_df %>% select(mean_GC_other, mean_GC_S) %>% melt, aes(x = value, fill = variable)) +  
   geom_density(alpha = 0.6) +
   scale_fill_discrete(name = "protein", labels = c(paste0("other (n = ",allcov_df %>% filter(!is.na(mean_GC_other)) %>% nrow,")"),
                                                    paste0("spike (n = ",allcov_df %>% filter(!is.na(mean_GC_S)) %>% nrow,")"))) +
   xlab("mean GC content (%)") +
+  coord_cartesian(xlim=c(30,48), expand=FALSE) +
   theme_bw(base_size = 14)
 
-g2 + g3 + g4 + plot_layout(ncol=1)
+g_gc_2 <- ggplot(cov_spikes_df %>% filter(taxid %in% (allcov_df %>% filter(n_S > 4) %>% .$childtaxa_id)) %>% mutate(taxid = abbreviate(taxid2name(taxid))), 
+                 aes(x = taxid, y = GC_content, fill = taxid)) +  
+  geom_boxplot(outlier.size = 0.3) +
+  guides(fill = FALSE) +
+  coord_flip(ylim=c(30,48), expand=FALSE) +
+  xlab("virus (only those w/ >= 5 spike seqs)") +
+  ylab("GC content (%)") +
+  theme_bw(base_size = 14) +
+  theme(panel.grid.major.y = element_blank())
+
+g_gc_1 + g_gc_2 + plot_layout(ncol=1,heights=c(1,2))
 ```
 
-**Stronger codon bias in spike than other proteins. Reasonable variation between spike proteins, although GC content is more uniform than in other proteins!**
+```{r}
+anova(lm(G+C ~ taxid, data=cov_spikes_df))
+```
 
+**GC content slightly lower and slightly more uniform in spikes than in other proteins! Some variation between-coronaviruses, and some variation within-coronaviruses. Human CoV HKU1 and Wencheng shrew Cov more strongly biased than other CoVs.**  
+
+
+**Mean GC content of spike versus known host range count, labelled as human/nonhuman virus**
+```{r plot_GC_hostrange, results="asis", layout="l-screen-inset", fig.height=8.0, fig.width=8.0}
+g <- ggplot(allcov_df,
+            aes(x=mean_GC_S, y=log(Hostspp+1), fill=h_human, label=childtaxa_name, label2=Hostspp)) +
+  geom_point(aes(color=h_human)) +
+  theme_bw()
+
+ggplotly(g)
+```
+*Not too informative though useful to see which virus is which?*
+
+## Spike protein composition
+
+```{r plot_dinuc_all_genus, results="asis", layout="l-screen-inset", fig.height=7.0, fig.width=10.0}
+ggplot(merge(cov_spikes_df,
+             allcov_df %>% select(childtaxa_id, genus) %>% mutate(genus = gsub("0","unclassified",genus)),
+             all.x = TRUE,
+             by.x = "taxid",
+             by.y = "childtaxa_id") %>% 
+         select(genus, matches("^[A|C|G|T][A|C|G|T]_Bias$")) %>% melt(id.vars = "genus"), 
+       aes(y = value, x = genus, fill = genus)) +  
+  geom_boxplot(outlier.size=0.3) +
+  facet_wrap(. ~ variable) +
+  theme_bw(base_size = 11) +
+  theme(axis.text.x=element_blank()) +
+  geom_hline(yintercept=1, alpha = 0.5, color="grey50", lty="dashed", size=1) +
+  xlab("Genus") +
+  ylab("Dinucleotide bias")
+```
+*Dinucleotide biases do vary in scale - clearly some biases present (TG overrepresented, CG underepresented). But these are pretty consistent between genera.*
+  
+  
+```{r plot_dinuc_pos, results="asis", layout="l-screen-inset", fig.height=7.0, fig.width=12.0}
+ggplot(cov_spikes_df %>% select(matches("^[A|C|G|T][A|C|G|T]_p[1|2|3]_Bias$")) %>% melt %>% 
+    mutate(pos = substr(variable,4,5), 
+           pos = case_when(pos == "p1" ~ "1-2", pos == "p2" ~ "2-3", pos == "p3" ~ "3-1"),
+           variable = paste0(substr(variable,1,2),"_Bias")), 
+       aes(y = value, x = pos, fill = pos)) +  
+  geom_boxplot(outlier.size=0.3) +
+  facet_wrap(. ~ variable) +
+  theme_bw(base_size = 11) +
+  theme(axis.text.x=element_blank()) +
+  geom_hline(yintercept=1, alpha = 0.5, color="grey50", lty="dashed", size=1) +
+  xlab("Position") +
+  ylab("Dinucleotide bias")
+```
+*Reassuring - biases are more extreme at bridge (3-1) dinucleotides as expected. TG, TA, CA overrepresented, GT, GA, AT underepresented. Still sufficient variability to look for signal in*
+  
+  
+```{r plot_codon_genus, results="asis", layout="l-screen-inset", fig.height=7.0, fig.width=12.0}
+ggplot(merge(cov_spikes_df,
+             allcov_df %>% select(childtaxa_id, genus) %>% mutate(genus = gsub("0","unclassified",genus)),
+             all.x = TRUE,
+             by.x = "taxid",
+             by.y = "childtaxa_id") %>% 
+         select(genus, matches("^[A|C|G|T][A|C|G|T][A|C|G|T]_Bias$")) %>% melt(id.vars = "genus"), 
+       aes(y = value, x = genus, fill = genus)) +  
+  geom_boxplot(outlier.size=0.3) +
+  facet_wrap(. ~ variable) +
+  theme_bw(base_size = 8) +
+  theme(axis.text.x=element_blank()) +
+  geom_hline(yintercept=1, alpha = 0.5, color="grey50", lty="dashed", size=1) +
+  xlab("Genus") +
+  ylab("Codon bias (RSCU)")
+```
+*Most obvious thing is use of different stop codons. But otherwise, fairly consistent across genera agaih..*  
+  
+
+```{r plot_aacid_genus, results="asis", layout="l-screen-inset", fig.height=7.0, fig.width=12.0}
+ggplot(merge(cov_spikes_df,
+             allcov_df %>% select(childtaxa_id, childtaxa_name, genus) %>% mutate(genus = gsub("0","unclassified",genus)),
+             all.x = TRUE,
+             by.x = "taxid",
+             by.y = "childtaxa_id") %>% 
+         select(childtaxa_name, genus, matches("^.*_aa_Bias$")) %>% melt(id.vars = c("childtaxa_name", "genus")), 
+       aes(y = value, x = genus, fill = genus, label = childtaxa_name)) +  
+  #  geom_point(alpha = 0) +
+  geom_boxplot(outlier.size=0.3) +
+  facet_wrap(. ~ variable, scales = "free_y") +
+  theme_bw(base_size = 11) +
+  theme(axis.text.x=element_blank()) +
+#  geom_hline(yintercept=1/21, alpha = 0.5, color="grey50", lty="dashed", size=1) +
+  xlab("Genus") +
+  ylab("Amino acid bias")
+```
+*Not convinced amino acid bias is really useful here - it's just proportion amino acids in the protein sequence, and it'll be fairly consistent between CoVs..*  
+  
