@@ -5,7 +5,6 @@
 # Extract all viruses in family Coronaviridae and their taxonomic IDs
 allcov_df <- downstream("Coronaviridae", db="ncbi")$Coronaviridae %>% filter(rank %in% c("no rank", "species"))
 
-
 # Find and obtain results based on taxonomy IDs of all coronaviruses
 if (load_prev_seqs == TRUE){
   load(file="data\\allcov_results.RData")
@@ -23,8 +22,9 @@ is.na(genus_list) <- lengths(genus_list) == 0
 
 allcov_df$genus <- genus_list %>% unlist %>% unname
 
-# Extract IDs of individual sequences
-allcov_seqids <- lapply(allcov_results, function(x) x$ids) %>% Filter(length, .)
+# Extract IDs of individual sequences (excluding sequences known a priori to have no CDS annotation)
+load("data//missingaccession.RData")
+allcov_seqids <- lapply(allcov_results, function(x) x$ids %>% subset(!(. %in% (missinguid %>% as.character)))) %>% Filter(length, .)
 
 # Fetch metadata information for those sequences (title, accession). NB entrez_summary doesn't accept empty objects, so filtering out those IDs with no sequences
 if (load_prev_seqs == TRUE){
@@ -172,7 +172,7 @@ cov_enc_df %<>% mutate(include = case_when(grepl("trunc|mutant", protein, ignore
 cov_enc_df <- plyr::join(allcov_meta_df %>% select(accessionversion, taxid, complete),
                     cov_enc_df,
                     by = "accessionversion",
-                    all.y = TRUE)
+                    type = "right")
 
 # Assign partial if labelled as complete spike but too small to be complete spike
 cov_enc_df %<>% mutate(complete = ifelse(seqtype == "S" & length < 2000, "partial_spike", complete))
@@ -259,7 +259,10 @@ allcov_df <- merge(allcov_df,
 # # 2954
 # lo <- wg_df %>% filter(accessionversion %in% (allcov_meta_df %>% filter(complete == "whole_genome") %>% .$accessionversion)) %>% .$accessionversion
 # # 2876
-# allcov_meta_df %>% filter(accessionversion %in% hi[!(hi %in% lo)]) %>% .$uid %>%  entrez_fetch(db = "nuccore",id = ., rettype="fasta_cds_na")
+# missingaccession <- hi[!(hi %in% lo)]
+# missinguid <- allcov_meta_df %>% filter(accessionversion %in% missingaccession) %>% .$uid
+# missinguid %>% entrez_fetch(db = "nuccore",id = ., rettype="fasta_cds_na")
+# save(missingaccession, missinguid, file = "data//missingaccession.RData")
 # 
 # # length is pulled from metadata,  whereas GC/ENC must be taken from sequence, so even if it returns "/n" we can still get length
 # allcov_df %>% filter(!is.na(mean_wgs_length)) %>% nrow
@@ -268,8 +271,8 @@ allcov_df <- merge(allcov_df,
 # missingids <- allcov_df %>% filter(!is.na(mean_wgs_length) & is.na(mean_wgs_GC)) %>% .$childtaxa_id
 # missingaccession <- allcov_meta_df %>% filter(taxid %in% missingids & complete == "whole_genome") %>% .$accessionversion
 # allcov_meta_df %>% filter(accessionversion %in% missingaccession) %>% .$uid
-# 
-# # just pulling in "\n"...  THE REASON IS THE SEQUENCES ARE NOT ACTUALLY ANNOTATED WITH CODING SEQUENCE REGIONS AND NONCODING SEQUENCE REGIONS
+
+# just pulling in "\n"...  THE REASON IS THE SEQUENCES ARE NOT ACTUALLY ANNOTATED WITH CODING SEQUENCE REGIONS AND NONCODING SEQUENCE REGIONS
 # IF WE REALLY NEED THESE I SUPPOSE WE COULD TRY ALIGNING?
 # CAN THEY BE FILTERED EARLIER TO KEEP NUMBERS UPDATED, E.G. IN ENTREZ_SEARCH AND ENTREZ_SUMMARY
 
@@ -314,10 +317,21 @@ n_cds <- cov_enc_df %>% nrow # n coding sequences
 # Filter dataset to final complete spike protein dataset
 cov_spikes_df <- cov_enc_df %>% filter(seqtype == "S" & include == "Y" & complete != "partial_spike")
 
-cov_enc_df[which(cov_enc_df$seqtype == "S" & cov_enc_df$include == "Y" & cov_enc_df$complete != "partial_spike"), ]
-
 # Write FASTA of final complete spike protein dataset
-cov_cord 40801
+cov_cord[which(cov_enc_df$seqtype == "S" & cov_enc_df$include == "Y" & cov_enc_df$complete != "partial_spike"), ] %>%
+  writeXStringSet(., filepath = "data\\allcov_spikes.fasta", format="fasta")
+
+write(unlist(allcov_FASTA), file="data\\allcov_GenBank.fasta")
+
+merge(merge(cov_spikes_df %>% select(accessionversion, taxid, title, complete, length),
+      allcov_meta_df %>% select(accessionversion, createdate, subname),
+      by = "accessionversion",
+      all.x = TRUE),
+      allcov_df %>% select(childtaxa_id, childtaxa_name, genus),
+      by.x = "taxid",
+      by.y = "childtaxa_id",
+      all.x = TRUE) %>% select(accessionversion, title, taxid, genus, childtaxa_name, createdate, complete, length, subname) %>% write.csv(., "data\\allcov_spikes_metadata.csv")
+
 
 #######################################
 # Calculate genome composition biases #
@@ -362,7 +376,8 @@ for (i in 1:ncol(cov_spikes_df)) {
 }
 
 # Calculate dinucleotide biases separately for positions 1-2, 2-3, 3-1
-# But first, need to calculate nucleotide frequencies for these positions
+# But first, need to calculate nucleotide frequencies for these positions - slow but easiest way of doing the calculation
+
 for (nuc in c("A","C","G","T")){
   cov_spikes_df[paste0(nuc,"_p1")] <- apply(cov_spikes_df %>% select(matches("^[A|C|G|T][A|C|G|T]_p1$")),     # Select only columns describing dinucleotides at position 1-2
                                             1, function(x) x %*% (cov_spikes_df %>% select(matches("^[A|C|G|T][A|C|G|T]_p1$")) %>% names %>% str_count(nuc)))   # Use dot product to calculate number of respective nucleotides at position 1-2
@@ -396,7 +411,6 @@ for (i in 1:ncol(cov_spikes_df)) {
       (cov_spikes_df[,paste0(substr(focalcol,1,1),"_p3")]/cov_spikes_df$n_nucs_p3 * cov_spikes_df[,paste0(substr(focalcol,2,2),"_p3")] / cov_spikes_df$n_nucs_p3)
   }
 }
-
 
 # Calculate Relative Synonymous Codon Usage
 for (i in 1:ncol(cov_spikes_df)) {
