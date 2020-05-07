@@ -11,6 +11,8 @@ library(Biostrings)
 library(coRdon)
 library(ggbiplot)
 library(ggmosaic)
+library(gplots)
+library(kableExtra)
 library(knitr)
 library(lattice)
 library(magrittr)
@@ -54,69 +56,19 @@ load_prev_seqs <- TRUE
 # Set searchterms
 searchterm <- '(spike[Title] OR "S gene"[Title] OR "S protein"[Title] OR "S glycoprotein"[Title] OR "S1 gene"[Title] OR "S1 protein"[Title] OR "S1 glycoprotein"[Title] OR peplomer[Title] OR peplomeric[Title] OR peplomers[All Title] OR "complete genome"[Title]) NOT (patent[Title] OR vaccine OR artificial OR construct OR recombinant[Title])'
 
-####################
-# Define functions #
-####################
-
 # add "surface protein" "surface glycoprotein"?
 
-Seq_searcher <- function(x){
-  Seq_result <- entrez_search(db="nuccore", term=paste0('txid', x, '[Organism:noexp] AND ', searchterm),
-                              retmax=10000)
-}
-
-Seq_summary <- function(x){
-  
-  query_index <- split(seq(1,length(x)), ceiling(seq_along(seq(1,length(x)))/300))
-  Seq_result <- vector("list", length(query_index))
-  
-  for (i in 1:length(query_index)) {
-    Seq_result[[i]] <- entrez_summary(db = "nuccore",id = x[unlist(query_index[i])])
-    Sys.sleep(5)
-  }
-  
-  if(length(x) == 1){
-    return(Seq_result)
-  } else {
-    return(Seq_result %>% flatten %>% unname)
-  }
-}
-
-Seq_FASTA <- function(x){
-  
-  query_index <- split(seq(1,length(x)), ceiling(seq_along(seq(1,length(x)))/300))
-  Seq_result <- vector("list", length(query_index))
-  
-  for (i in 1:length(query_index)) {
-    Seq_result[[i]] <- entrez_fetch(db = "nuccore",id = x[unlist(query_index[i])], rettype="fasta_cds_na")
-    Sys.sleep(5)
-  }
-  return(flatten_chr(Seq_result) %>% paste(collapse=""))
-}
-
-metadata_title_cleaner <- function(x){
-    x %>%
-    as.character %>%
-    strsplit(., "(?<=.)(?= cds)", perl=TRUE) %>%                # split title into chunks based on "cds" separator
-    lapply(function(x) x[grepl("spike|surface gly|s gly|s prot|S gene|peplom|(S1)| S1 |(S2)| S2 |subunit 1|subunit 2|1 subunit|2 subunit", x, ignore.case = TRUE)] %>%       # search for the chunk describing the S protein
-             word(., -1))                                       # save whether partial or complete (which should be last word in string)
-}
-
-genome_biplot <- function(pca, outcome){
-  g <- ggbiplot(pca,
-                groups = cov_pca_df[,outcome],
-                ellipse = TRUE,
-                alpha = 0.4,
-                varname.abbrev=TRUE) +
-    geom_point(alpha=0, aes(fill= cov_pca_df[,outcome], label=cov_pca_df$childtaxa_name)) +
-    theme(legend.position='none') +
-    theme_bw()
-  ggplotly(g) %>% hide_legend()
-}
+# Set length filters for whole genome sequences and spike protein sequences
+min_wgs_length <- 20000
+max_wgs_length <- 32000
+min_spike_length <- 2000
 
 ###############
 # Run scripts #
 ###############
+
+header(verbose, "Loading custom functions", padding=0)
+source("scripts\\functions.R" )
 
 header(verbose, "Extracting and processing sequence data", padding=0)
 source("scripts\\process_cov_seq.R" )
@@ -125,6 +77,9 @@ source("scripts\\process_cov_seq.R" )
 render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\data_summary.Rmd", 
        output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\data_summary.html")
 
-render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output.Rmd", 
-       output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output.html")
+render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output_spikes.Rmd", 
+       output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output_spikes.html")
+
+render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output_wgs.Rmd", 
+       output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output_wgs.html")
 

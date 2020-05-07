@@ -1,0 +1,94 @@
+---
+title: "Lab book: PCA outputs, spike proteins"
+output: radix::radix_article
+geometry: margin=1in, includeheadfoot
+fig_captions: true
+fontsize: 3pt
+header-includes:
+   - \usepackage{longtable}
+   - \usepackage{fancyhdr}
+   - \fancyfoot[LE,RO]{\thepage}
+author:
+  - name: Liam Brierley
+    affiliation: University of Liverpool
+date: '`r format(Sys.Date(), "%Y-%m-%d")`'
+---
+\pagenumbering{arabic}
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, error=TRUE)
+```
+
+**PCAs based on genome composition for `r cov_spikes_df %>% nrow` coronavirus spike protein sequences. PCAs are colour-coded and ellipses drawn based on different outcome variables, though underlying PCA for each bias type is the same. Mouseover gives outcome variable and virus name.**
+
+## Dinucleotide bias // genus
+
+```{r plot_biplot_dinucs_genus, results="asis", layout="l-body-outset", fig.height=10.0, fig.width=10.0}
+genomic_pca(cov_spikes_df, vars = "dinucs", outcome = "genus")
+```
+
+_Fairly clear clustering and separation of genera!_
+
+## Dinucleotide bias // human infection capability
+
+```{r plot_biplot_dinucs_human, results="asis", layout="l-body-outset", fig.height=10.0, fig.width=10.0}
+genomic_pca(cov_spikes_df, vars = "dinucs", outcome = "h_human")
+```
+
+_Very tight clusters, especially of SARS-CoV and SARS-Cov-2. MERS, SARS, SARS-CoV-2 actually as distinct from each other as they are from other human CoVs. And many close animal viruses..._
+
+## Codon bias (RSCU) // genus
+
+```{r plot_biplot_codons_genus, results="asis", layout="l-body-outset", fig.height=10.0, fig.width=10.0}
+genomic_pca(cov_spikes_df, vars = "codons", outcome = "genus")
+```
+
+_Separation seems driven almost entirely by stop codon use, alphas preferring TGA, betas and gammas preferring TAA, deltas somewhere in between._
+
+## Codon bias (RSCU) // human infection capability
+
+```{r plot_biplot_codons_human, results="asis", layout="l-body-outset", fig.height=10.0, fig.width=10.0}
+genomic_pca(cov_spikes_df, vars = "codons", outcome = "h_human")
+```
+
+_Epidemic coronaviruses are strongly separated from each other, but not too separated from other human viruses again. Virtually all the human viruses prefer TAA, except HCoV-HKU1 doesn't seem fussy._
+
+## Codon bias (RSCU) without stop codon // genus
+
+```{r plot_biplot_codonnostop_genus, results="asis", layout="l-body-outset", fig.height=10.0, fig.width=10.0}
+genomic_pca(cov_spikes_df, vars = "codons_nostop", outcome = "genus")
+```
+
+_Codons contribute much more evenly now, strongest being AGA/CGT (Arginine). Gammas/deltas well separated but not others._
+
+## Codon bias (RSCU) without stop codon // human infection capability
+
+```{r plot_biplot_codonnostop_human, results="asis", layout="l-body-outset", fig.height=10.0, fig.width=10.0}
+genomic_pca(cov_spikes_df, vars = "codons_nostop", outcome = "h_human")
+```
+
+_Human viruses don't cluster together still, again likely reflects receptor usage as all SARS-like viruses top left_
+
+## Codon bias (RSCU) without stop codon // human infection capability // PCA3 and PCA4
+
+```{r plot_biplot_codonnostop_human_extra, results="asis", layout="l-body-outset", fig.height=10.0, fig.width=10.0}
+genomic_pca(cov_spikes_df, vars = "codons_nostop", outcome = "h_human", choices=3:4)
+```
+
+_However looking at PC3 and PC4 (which explain much less overall variation) gives us a much better separation between human and non-human, regardless of receptor...?! No particular amino acid loading strongly here. Good signal to capture..!_
+
+## Amino acid bias // genus
+
+```{r plot_biplot_aa_genus, results="asis", layout="l-body-outset", fig.height=10.0, fig.width=10.0}
+genomic_pca(cov_spikes_df, vars = "aa", outcome = "genus")
+```
+
+_Clusters, but not as clear a separation here._
+
+## Amino acid bias // human infection capability
+
+```{r plot_biplot_aa_human, results="asis", layout="l-body-outset", fig.height=10.0, fig.width=10.0}
+genomic_pca(cov_spikes_df, vars = "aa", outcome = "h_human")
+```
+
+_Surprisingly, the epidemic human coronaviruses are well separated from the endemic human coronaviruses here!_

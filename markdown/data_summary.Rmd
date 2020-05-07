@@ -17,6 +17,11 @@ date: '`r format(Sys.Date(), "%Y-%m-%d")`'
 
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, error=TRUE)
+options(kableExtra.html.bsTable = T)
+
+custom_kable <- function(x, caption=NULL) {
+  kable(x, caption=caption) %>% kable_styling(font_size = 4, bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T)
+}
 ```
 
 ## Numbers of viruses, sequences
@@ -29,13 +34,13 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, error=TRUE)
 - Total sequence accessions: **`r n_seq`**, made up of **`r n_cds`** individual protein coding sequences
 
 ```{r}
-allcov_df %>% mutate(n_seqs = ifelse(n_seqs > 0, "spike sequence available", "no spike sequence"), Hostspp = ifelse(Hostspp > 0, "host recognised", "no hosts")) %>% with(table(n_seqs, Hostspp)) %>% kable
+allcov_df %>% mutate(n_seqs = ifelse(n_seqs > 0, "spike sequence available", "no spike sequence"), eid2_n_species = ifelse(eid2_n_species > 0, "host recognised EID2", "no hosts EID2")) %>% with(table(n_seqs, eid2_n_species)) %>% custom_kable
 ```
 
 **Number of sequences per coronavirus heavily skewed, most just have 1:**
 ```{r}
-allcov_df %>% filter(n_seqs > 0) %>% select(n_seqs) %>% table %>% kable
-allcov_df %>% arrange(n_seqs) %>% tail(n = 5) %>% select(childtaxa_name, n_seqs) %>% kable
+allcov_df %>% filter(n_seqs > 0) %>% select(n_seqs) %>% table %>% t %>% custom_kable %>% scroll_box(width = "100%", height = "100%") 
+allcov_df %>% arrange(n_seqs) %>% select(childtaxa_name, n_seqs) %>% custom_kable %>% scroll_box(width = "100%", height = "250px")
 ```
 
 ## SARS-CoV-2 sequences
@@ -45,25 +50,108 @@ allcov_df %>% arrange(n_seqs) %>% tail(n = 5) %>% select(childtaxa_name, n_seqs)
 - **`r n_man_genbank_seqs`** sequences identified from manual extraction from GenBank (not as many as above, even with additional sequences, because again, not fully annotated, so can't extract from searches)
 - **`r length(sarscov2_GISAID_FASTA)`** sequences identified from manual extraction from GISAID (all complete genomes, though proteins are not annotated..)
 
-## Numbers of hosts
+## Sequence data quality
+
+- Total sequence accessions: **`r n_seq`**, most of which are only partial sequences for spike *(NB this distinction assigned using regexp searches in title, as most accessions are missing the "completeness" field and some appear incorrect)*
+
+```{r}
+table(allcov_meta_df$complete) %>% prop.table %>% custom_kable
+```
+
+- While most sequences are only partial, most coronaviruses with at least 1 sequence actually have at least 1 complete spike sequence (`r allcov_df %>% filter(!is.na(n_S) & n_S > 0) %>% nrow` of `r n_cov_seq`).
+
+- Trying to determine which protein coding sequences correspond to the spike proteins:
+- `r round((cov_enc_df %>% filter(is.na(protein)) %>% nrow)*100/n_cds,2)`% of coding sequences do not have a protein label annotation in metadata and `r round((cov_enc_df %>% filter(is.na(gene)) %>% nrow)*100/n_cds,2)`% do not have a gene label annotation - using regular expressions based on proteins to determine whether each coding sequence is spike (may be entire S, or just S1 subunit, S2 subunit) or other:
+
+```{r}
+cov_enc_df %>% filter(include == "Y") %>% with(table(seqtype, complete)) %>% custom_kable
+```
+
+**Excluding partial sequences**, summaries of counts of different complete spike protein sequence types *per coronavirus (taxid)*:
+
+```{r}
+table(allcov_df$n_S) %>% t %>% custom_kable %>% scroll_box(width = "100%", height = "100%") 
+```
+
+So **`r sum(allcov_df$n_S, na.rm=TRUE)`** individual spike protein sequences across **`r allcov_df %>% filter(!is.na(n_S) & n_S > 0) %>% nrow`** viruses.
+
+*NB further complete coding sequences are available that give subunits separately - for S1, `r allcov_df %>% filter(n_S1 > 0) %>% nrow` virus (`r allcov_df %>% filter(n_S1 > 0) %>% .$childtaxa_name`) and for S2, `r allcov_df %>% filter(n_S2 > 0) %>% nrow` virus (`r allcov_df %>% filter(n_S2 > 0) %>% .$childtaxa_name`). Not considering these for now.*
+
+### Completeness of misc sequence metadata
+
+Of **`r nrow(cov_spikes_df)`** spike protein sequences... (%s)
+
+```{r}
+temp <- allcov_meta_df %>% filter(accessionversion %in% cov_spikes_df$accessionversion) %>% summarise_at(vars(starts_with("meta_")), funs(sum(!is.na(.))))*100/nrow(cov_spikes_df)
+temp %>% t %>% round(1) %>% custom_kable %>% scroll_box(width = "100%", height = "200px") 
+```
+
+Of **`r nrow(cov_wg_df)`** whole genome sequences... (%s)
+
+```{r}
+temp <- allcov_meta_df %>% filter(accessionversion %in% cov_wg_df$accessionversion) %>% summarise_at(vars(starts_with("meta_")), funs(sum(!is.na(.))))*100/nrow(cov_wg_df)
+temp %>% t %>% round(1) %>% custom_kable %>% scroll_box(width = "100%", height = "200px")
+```
+
+All host metadata matched to a taxonomic ID from here.
+
+
+## Host-virus data
+
+### Hosts per virus
 
 Considering only the `r n_cov_seq` coronaviruses with available spike protein sequence data...
 
-**Number of host species per coronavirus also heavily skewed, as expected:**
+**Number of hosts per coronavirus, EID2:**
 ```{r}
-allcov_df %>% filter(n_seqs > 0) %>% select(Hostspp) %>% table %>% kable
-allcov_df %>% filter(n_seqs > 0) %>% arrange(Hostspp) %>% tail(n = 5) %>% select(childtaxa_name, Hostspp) %>% kable
+allcov_df %>% filter(n_seqs > 0) %>% select(eid2_n_species) %>% table %>% t %>% custom_kable(caption = "Distribution of n hosts per virus species")
+allcov_df %>% filter(n_seqs > 0 & !is.na(eid2_n_species)) %>% arrange(-eid2_n_species) %>% select(childtaxa_name, eid2_n_species) %>% custom_kable %>% scroll_box(width = "100%", height = "250px") 
 ```
-*Coronaviruses with broadest host range include very wide species that encompass many individual strains..*
 
-**Number of coronaviruses per host species also heavily skewed:**
+**Number of hosts per coronavirus, host metdata labels:**
 ```{r}
-eid2_cov %>% filter(PathogenTaxID %in% (allcov_df %>% filter(n_seqs > 0) %>% .$childtaxa_id %>% as.integer)) %>% select(Host) %>% table %>% table %>% kable
-eid2_cov %>% filter(PathogenTaxID %in% (allcov_df %>% filter(n_seqs > 0) %>% .$childtaxa_id %>% as.integer)) %>% select(Host) %>% table %>% as.data.frame %>% arrange(Freq) %>% tail(n = 6) %>% kable
+allcov_df %>% filter(n_seqs > 0) %>% select(n_species) %>% table %>% t %>% custom_kable(caption = "Distribution of n hosts per virus species")
+allcov_df %>% filter(n_seqs > 0 & !is.na(n_species)) %>% arrange(-n_species) %>% select(childtaxa_name, n_species) %>% custom_kable %>% scroll_box(width = "100%", height = "250px") 
 ```
-*As expected, some commonly studied species (ferret, rat, domestic pig, human), plus livestock (alpaca) and one horseshoe bat, sequences mostly derive from a [single study](https://www.nature.com/articles/nature12711)*
+*Number of host species, host groups per coronavirus is skewed as expected. Coronaviruses with broadest host range include very wide species that encompass many individual strains..*
 
-**Number of coronaviruses infecting each host group:**
+**Distributions of n higher host taxa per coronavirus, host metdata labels:**
+```{r}
+allcov_df %>% filter(n_seqs > 0) %>% select(n_class) %>% table %>% t %>% custom_kable(caption = "Classes")
+allcov_df %>% filter(n_seqs > 0) %>% select(n_order) %>% table %>% t %>% custom_kable(caption = "Orders")
+allcov_df %>% filter(n_seqs > 0) %>% select(n_family) %>% table %>% t %>% custom_kable(caption = "Families")
+allcov_df %>% filter(n_seqs > 0) %>% select(n_genus) %>% table %>% t %>% custom_kable(caption = "Genera")
+```
+
+### Viruses per host
+
+**Number of coronaviruses per host, EID2:**
+```{r}
+eid2_cov %>% filter(PathogenTaxID %in% (allcov_df %>% filter(n_seqs > 0) %>% pull(childtaxa_id) %>% as.integer)) %>% count(Host) %>% pull(n) %>% table %>% t %>%  custom_kable(caption = "Distribution of n virus species per host") %>% scroll_box(width = "100%", height = "100%") 
+eid2_cov %>% filter(PathogenTaxID %in% (allcov_df %>% filter(n_seqs > 0) %>% pull(childtaxa_id) %>% as.integer)) %>% count(Host) %>% arrange(-n) %>% custom_kable %>% scroll_box(width = "100%", height = "250px") 
+```
+*Also heavily skewed as expected, some commonly studied species (ferret, rat, domestic pig, human), plus livestock (alpaca) and one horseshoe bat, sequences mostly derive from a [single study](https://www.nature.com/articles/nature12711)*
+
+**Number of sequences/coronaviruses per host, host metadata labels:**
+```{r}
+summ_per_host_meta <- allcov_meta_df %>% filter(!is.na(species_name)) %>% group_by(species_name) %>% summarise(n_sequences = n(), n_species = n_distinct(taxid))
+
+summ_per_host_meta %>% pull(n_sequences) %>% table %>% t %>% custom_kable(caption = "Distribution of n virus sequences per host")
+summ_per_host_meta %>% pull(n_species) %>% table %>% t %>% custom_kable(caption = "Distribution of n virus species per host")
+
+summ_per_host_meta %>% arrange(-n_sequences) %>% custom_kable %>% scroll_box(width = "100%", height = "250px")
+```
+  
+  
+**Number of sequences/coronaviruses per higher host taxa, host metdata labels:**
+```{r}
+allcov_meta_df %>% filter(!is.na(class_name)) %>% group_by(class_name) %>% summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>% arrange(-n_sequences) %>% custom_kable
+allcov_meta_df %>% filter(!is.na(order_name)) %>% group_by(order_name) %>% summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>% arrange(-n_sequences) %>% custom_kable %>% scroll_box(width = "100%", height = "250px") 
+allcov_meta_df %>% filter(!is.na(family_name)) %>% group_by(family_name) %>% summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>% arrange(-n_sequences) %>% custom_kable %>% scroll_box(width = "100%", height = "250px")
+allcov_meta_df %>% filter(!is.na(genus_name)) %>% group_by(genus_name) %>% summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>% arrange(-n_sequences) %>% custom_kable %>% scroll_box(width = "100%", height = "250px")
+```
+
+**Number of coronaviruses per host group, EID2:**
 
 Host groups are mutually exclusive, i.e. primates = non-human primates. Other mammals = misc orders (Proboscidea, Eulipotyphla, Cingulata..)
 
@@ -84,33 +172,6 @@ ggplot(data.frame(host = allcov_df %>% filter(n_seqs > 0) %>% select(starts_with
 
 *Not too sure this is very meaningful given how little we know about potential animal hosts of coronaviruses*
 
-## Sequence data quality
-
-- Total sequence accessions: **`r n_seq`**, most of which are only partial sequences for spike *(NB this distinction assigned using regexp searches in title, as most accessions are missing the "completeness" field and some appear incorrect)*
-
-```{r}
-table(allcov_meta_df$complete) %>% prop.table %>% kable
-```
-
-- While most sequences are only partial, most coronaviruses with at least 1 sequence actually have at least 1 complete spike sequence (`r allcov_df %>% filter(!is.na(n_S) & n_S > 0) %>% nrow` of `r n_cov_seq`).
-
-- Trying to determine which protein coding sequences correspond to the spike proteins:
-- `r round((cov_enc_df %>% filter(is.na(protein)) %>% nrow)*100/n_cds,2)`% of coding sequences do not have a protein label annotation in metadata and `r round((cov_enc_df %>% filter(is.na(gene)) %>% nrow)*100/n_cds,2)`% do not have a gene label annotation - using regular expressions based on proteins to determine whether each coding sequence is spike (may be entire S, or just S1 subunit, S2 subunit) or other:
-
-```{r}
-cov_enc_df %>% filter(include == "Y") %>% with(table(seqtype, complete)) %>% kable
-```
-
-**Excluding partial sequences**, summaries of counts of different complete spike protein sequence types *per coronavirus (taxid)*:
-
-```{r}
-table(allcov_df$n_S) %>% t %>% kable
-```
-
-So **`r sum(allcov_df$n_S, na.rm=TRUE)`** individual spike protein sequences across **`r allcov_df %>% filter(!is.na(n_S) & n_S > 0) %>% nrow`** viruses.
-
-*NB further complete coding sequences are available that give subunits separately - for S1, `r allcov_df %>% filter(n_S1 > 0) %>% nrow` virus (`r allcov_df %>% filter(n_S1 > 0) %>% .$childtaxa_name`) and for S2, `r allcov_df %>% filter(n_S2 > 0) %>% nrow` virus (`r allcov_df %>% filter(n_S2 > 0) %>% .$childtaxa_name`). Not considering these for now.*
-
 ## Sequence data summaries
 
 **Excluding partial sequences**, summaries of genomic characteristics *per coronavirus (taxid)* (i.e. values are averaged within each virus so that each virus represents only one data point):
@@ -129,7 +190,7 @@ ggplot(allcov_df, aes(x = mean_wgs_length)) +
 ```{r plot_length, results="asis", layout="l-body-outset", fig.height=9.0, fig.width=10.0}
 g_len_1 <- ggplot(allcov_df %>% select(mean_length_other, mean_length_S) %>% melt, aes(x = value, fill = variable)) +  
   geom_density(alpha = 0.6) +
-  scale_fill_discrete(name = "protein", labels = c(paste0("other (n = ",allcov_df %>% filter(!is.na(mean_length_other)) %>% nrow,")"),
+  scale_fill_discrete(name = "protein", labels = c(paste0("nonspike (n = ",allcov_df %>% filter(!is.na(mean_length_other)) %>% nrow,")"),
                                                    paste0("spike (n = ",allcov_df %>% filter(!is.na(mean_length_S)) %>% nrow,")"))) +
   xlab("mean coding sequence length (bases)") +
   coord_cartesian(xlim=c(0,12000), expand=FALSE) +
@@ -154,11 +215,11 @@ anova(lm(length ~ taxid, data=cov_spikes_df))
 
 **Fairly consistent sequence lengths of spikes compared to other proteins (expected as pooling all others). Very little within-coronavirus variation.**  
 
-
+   
 ```{r plot_enc, results="asis", layout="l-body-outset", fig.height=9.0, fig.width=10.0}
-g_enc_1 <- ggplot(allcov_df %>% select(mean_enc_other, mean_enc_S) %>% melt, aes(x = value, fill = variable)) +  
+g_enc_1 <- ggplot(allcov_df %>% select(mean_wgs_enc, mean_enc_S) %>% melt, aes(x = value, fill = variable)) +  
   geom_density(alpha = 0.6) +
-  scale_fill_discrete(name = "protein", labels = c(paste0("other (n = ",allcov_df %>% filter(!is.na(mean_enc_other)) %>% nrow,")"),
+  scale_fill_discrete(name = "protein", labels = c(paste0("wgs (n = ",allcov_df %>% filter(!is.na(mean_wgs_enc)) %>% nrow,")"),
                                                    paste0("spike (n = ",allcov_df %>% filter(!is.na(mean_enc_S)) %>% nrow,")"))) +
   xlab("mean effective number of codons (ENC)") +
   coord_cartesian(xlim=c(33,60), expand=FALSE) +
@@ -181,13 +242,13 @@ g_enc_1 + g_enc_2 + plot_layout(ncol=1,heights=c(1,2))
 anova(lm(enc ~ taxid, data=cov_spikes_df))
 ```
 
-**Stronger average codon bias in spike than other proteins! Reasonable variation in spike codon biases between-coronaviruses and within some coronaviruses. Human CoV HKU1 more strongly biased than other CoVs.**  
+**Average codon bias in spikes falls between bimodal peaks of whole genome sequences. Reasonable variation in spike codon biases between-coronaviruses and within some coronaviruses. Human CoV HKU1 more strongly biased than other CoVs.**  
 
 
 ```{r plot_gc, results="asis", layout="l-body-outset", fig.height=9.0, fig.width=10.0}
-g_gc_1 <- ggplot(allcov_df %>% select(mean_GC_other, mean_GC_S) %>% melt, aes(x = value, fill = variable)) +  
+g_gc_1 <- ggplot(allcov_df %>% select(mean_wgs_GC, mean_GC_S) %>% melt, aes(x = value, fill = variable)) +  
   geom_density(alpha = 0.6) +
-  scale_fill_discrete(name = "protein", labels = c(paste0("other (n = ",allcov_df %>% filter(!is.na(mean_GC_other)) %>% nrow,")"),
+  scale_fill_discrete(name = "protein", labels = c(paste0("wgs (n = ",allcov_df %>% filter(!is.na(mean_wgs_GC)) %>% nrow,")"),
                                                    paste0("spike (n = ",allcov_df %>% filter(!is.na(mean_GC_S)) %>% nrow,")"))) +
   xlab("mean GC content (%)") +
   coord_cartesian(xlim=c(30,48), expand=FALSE) +
@@ -210,13 +271,13 @@ g_gc_1 + g_gc_2 + plot_layout(ncol=1,heights=c(1,2))
 anova(lm(G+C ~ taxid, data=cov_spikes_df))
 ```
 
-**GC content slightly lower and slightly more uniform in spikes than in other proteins! Some variation between-coronaviruses, and some variation within-coronaviruses. Human CoV HKU1 and Wencheng shrew Cov more strongly biased than other CoVs.**  
+**GC content lower in spikes than in whole genome sequences! Some variation between-coronaviruses, and some variation within-coronaviruses. Human CoV HKU1 and Wencheng shrew Cov more strongly biased than other CoVs.**  
 
 
 **Mean GC content of spike versus known host range count, labelled as human/nonhuman virus**
 ```{r plot_GC_hostrange, results="asis", layout="l-screen-inset", fig.height=8.0, fig.width=8.0}
 g <- ggplot(allcov_df,
-            aes(x=mean_GC_S, y=log(Hostspp+1), fill=h_human, label=childtaxa_name, label2=Hostspp)) +
+            aes(x=mean_GC_S, y=log(eid2_n_species+1), fill=h_human, label=childtaxa_name, label2=eid2_n_species)) +
   geom_point(aes(color=h_human)) +
   theme_bw()
 
@@ -227,11 +288,7 @@ ggplotly(g)
 ## Spike protein composition
 
 ```{r plot_dinuc_all_genus, results="asis", layout="l-screen-inset", fig.height=7.0, fig.width=10.0}
-ggplot(merge(cov_spikes_df,
-             allcov_df %>% select(childtaxa_id, genus) %>% mutate(genus = gsub("0","unclassified",genus)),
-             all.x = TRUE,
-             by.x = "taxid",
-             by.y = "childtaxa_id") %>% 
+ggplot(cov_spikes_df %>% 
          select(genus, matches("^[A|C|G|T][A|C|G|T]_Bias$")) %>% melt(id.vars = "genus"), 
        aes(y = value, x = genus, fill = genus)) +  
   geom_boxplot(outlier.size=0.3) +
@@ -263,11 +320,7 @@ ggplot(cov_spikes_df %>% select(matches("^[A|C|G|T][A|C|G|T]_p[1|2|3]_Bias$")) %
   
   
 ```{r plot_codon_genus, results="asis", layout="l-screen-inset", fig.height=7.0, fig.width=12.0}
-ggplot(merge(cov_spikes_df,
-             allcov_df %>% select(childtaxa_id, genus) %>% mutate(genus = gsub("0","unclassified",genus)),
-             all.x = TRUE,
-             by.x = "taxid",
-             by.y = "childtaxa_id") %>% 
+ggplot(cov_spikes_df %>% 
          select(genus, matches("^[A|C|G|T][A|C|G|T][A|C|G|T]_Bias$")) %>% melt(id.vars = "genus"), 
        aes(y = value, x = genus, fill = genus)) +  
   geom_boxplot(outlier.size=0.3) +
@@ -282,13 +335,9 @@ ggplot(merge(cov_spikes_df,
   
 
 ```{r plot_aacid_genus, results="asis", layout="l-screen-inset", fig.height=7.0, fig.width=12.0}
-ggplot(merge(cov_spikes_df,
-             allcov_df %>% select(childtaxa_id, childtaxa_name, genus) %>% mutate(genus = gsub("0","unclassified",genus)),
-             all.x = TRUE,
-             by.x = "taxid",
-             by.y = "childtaxa_id") %>% 
-         select(childtaxa_name, genus, matches("^.*_aa_Bias$")) %>% melt(id.vars = c("childtaxa_name", "genus")), 
-       aes(y = value, x = genus, fill = genus, label = childtaxa_name)) +  
+ggplot(cov_spikes_df %>% 
+         select(genus, matches("^.*_aa_Bias$")) %>% melt(id.vars = "genus"), 
+       aes(y = value, x = genus, fill = genus)) +  
   #  geom_point(alpha = 0) +
   geom_boxplot(outlier.size=0.3) +
   facet_wrap(. ~ variable, scales = "free_y") +
