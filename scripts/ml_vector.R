@@ -89,7 +89,7 @@ model_df %<>% group_by(outcome) %>% filter(n() >= min_n_seq_category) %>% ungrou
 s <- .75 
 
 # Set training and test sets
-nloops <- 2
+nloops <- 1
 training_rows = createDataPartition(paste(model_df$outcome, model_df$genus), p = s, list = TRUE, times=nloops)
 model_df %<>% select(-genus) %>% mutate(outcome = as.factor(outcome))
 
@@ -97,7 +97,7 @@ model_df %<>% select(-genus) %>% mutate(outcome = as.factor(outcome))
 formula_used <- formula(outcome ~ .)
 
 # Raw probability of outcome classes
-prop.table(table(model_df$outcome))
+vector_probs <- prop.table(table(model_df$outcome))
 
 ###########
 # Run SVM
@@ -119,13 +119,18 @@ full_svm_analysis <- function(x, data){
     filter(!(row_number() %in% x)) %>%
     select(taxid, childtaxa_name, accessionversion)
   
-  # Build SVM
-  svm <- svm(formula_used, 
-             data=train,
-             type="C-classification",
-             kernel="radial",
-             cost = 1,
-             probability=TRUE)  
+  # Train and validate SVM (tuning gamma and cost parameters) through 10-fold cross-validation
+  tuned_svm <- tune.svm(formula_used, 
+      data=train,
+      type="C-classification",
+      kernel="radial",
+      gamma = seq(from = 0.01, to = 1, by = 0.5),
+      cost = seq(from = 0.01, to = 1, by = 0.5),
+      probability=TRUE,
+      tune_control = tune.control(cross = 10)) 
+  
+  # Obtain best performing model
+  svm <- tuned_svm$best.model
   
   # Predictions for test set
   predict_class_test <- predict(svm, newdata=test, type="response")
@@ -144,6 +149,8 @@ full_svm_analysis <- function(x, data){
   
   # Store individual SVM results as a list 
   list(
+    tuned_obj = tuned_svm,
+    best_params = tuned_svm$best.parameters,
     
     # varimp = varimp,
     
@@ -170,7 +177,6 @@ svm_start <- Sys.time()
 svm_list <- pblapply(training_rows, full_svm_analysis, data=model_df)
 svm_end <- Sys.time()
 
-
 ######################
 # Run random forests #
 ######################
@@ -192,14 +198,17 @@ full_rf_analysis <- function(x, data){
     select(taxid, childtaxa_name, accessionversion)
   
   # Build random forests
-  random_forest <- randomForest(formula_used, 
-                                dat=train,
+  tuned_rf <- tune.randomForest(formula_used, 
+                                data=train,
                                 importance=TRUE, 
                                 na.action=na.exclude, 
                                 keep.forest=TRUE, 
-                                ntree = 5000,   # reduce this?
                                 proximity=TRUE, 
-                                nodesize = 10)
+                                nodesize = seq(from = 5, to = 20, by = 10),
+                                ntree =  seq(from = 1000, to = 3000, by = 1000),   # reduce this?
+                                mtry = seq(from = 5, to = 20, by = 10))
+  
+  random_forest <- tuned_rf$best.model
   
   # Predictions for test set
   predict_class_test <- predict(random_forest, newdata=test, type="response")
@@ -217,6 +226,9 @@ full_rf_analysis <- function(x, data){
   
   # Store individual RF results as a list
   list(
+    
+    tuned_obj = tuned_rf,
+    best_params = tuned_rf$best.parameters,
     
     # Variable importance
     varimp = random_forest$importance %>%
@@ -252,4 +264,4 @@ rf_end <- Sys.time()
 
 save(rf_start, rf_end, svm_start, svm_end,
      rf_list, svm_list,
-     file="listresults_rf_svm_12_5_20.RData")
+     file=paste0("listresults_rf_svm", format(Sys.time(), "%d_%m_%y"), ".RData"))
