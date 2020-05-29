@@ -73,6 +73,9 @@ source("scripts\\functions.R" )
 header(verbose, "Extracting and processing sequence data", padding=0)
 source("scripts\\process_cov_seq.R" )
 
+# Save data needed for ML
+save(allcov_df, cov_spikes_df, cov_wg_df, file = paste0("cov_ML_dfs_", format(Sys.time(), "%d_%m_%y"), ".RData"))
+
 # Render lab books
 render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\data_summary.Rmd", 
        output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\data_summary.html")

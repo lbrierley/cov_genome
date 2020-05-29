@@ -241,3 +241,56 @@ calc_composition_bias <- function(df){
   
   return(df)
 }
+
+
+matrixPlot <- function(df, outcome_name) {
+  matrix_starter <- df %>% filter(!is.na(!! sym(outcome_name))) %>% select(accessionversion, !! sym(outcome_name))
+  
+  matrix_grid <- full_join(matrix_starter, 
+                           matrix_starter, 
+                           by = outcome_name) %>% 
+    select(-(!! sym(outcome_name))) %>% 
+    group_by(accessionversion.x, accessionversion.y) %>% 
+    summarise(weight = n()) %>%
+    spread(accessionversion.y, weight, fill = 0) %>%
+    column_to_rownames("accessionversion.x") %>%
+    as.matrix
+  
+  
+  png(file = paste0("outputs\\matrix_",outcome_name,".png"), units = "in", height = 6, width = 6, res = 300)
+  par(mar=c(0, 0, 0, 0))
+  image(t(matrix_grid), useRaster=TRUE, axes=FALSE, col = c("white", "black"))
+  text(0.9,0.1,as.numeric(round(prop.table(table(matrix_grid[lower.tri(matrix_grid)]))[2]*100, 2)), col = "red", cex=2) # Print % nonzero, i.e. proportion of pairs with shared host
+  dev.off()
+}
+
+
+
+ml_extractor <- function(f, type="full"){
+  
+  if (f == "AUC"){
+    y <- function(x) {x$AUC}
+  }
+  
+  if (f == "acc"){
+    y <- function(x) {x$matrix_test$overall["Accuracy"]}
+  }
+  
+  if (f == "TSS"){
+    y <- function(x) {as.numeric(x$matrix_test$byClass["Sensitivity"] + x$matrix_test$byClass["Specificity"] - 1)}
+  }
+  
+  if (type == "full"){
+    return(data.frame(method = c(rep("RF",nloops),rep("LASSO LR",nloops),rep("GBM ADA",nloops)),
+                      metric = c(lapply(rf_list, function(x) x %>% y) %>% unlist,
+                                 lapply(lr_list, function(x) x %>% y) %>% unlist,
+                                 lapply(gbm_list, function(x) x %>% y) %>% unlist)))
+  }
+  
+  if (type == "mean"){
+    return(data.frame(method = c("RF","LASSO LR","GBM ADA"),
+                      metric = c(lapply(rf_list, function(x) x %>% y) %>% unlist %>% mean(),
+                                 lapply(lr_list, function(x) x %>% y) %>% unlist %>% mean(),
+                                 lapply(gbm_list, function(x) x %>% y) %>% unlist %>% mean())))
+  }
+} 

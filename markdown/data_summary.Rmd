@@ -120,7 +120,7 @@ allcov_df %>% filter(n_seqs > 0 & !is.na(n_species)) %>% arrange(-n_species) %>%
 allcov_df %>% filter(n_seqs > 0) %>% select(n_class) %>% table %>% t %>% custom_kable(caption = "Classes")
 allcov_df %>% filter(n_seqs > 0) %>% select(n_order) %>% table %>% t %>% custom_kable(caption = "Orders")
 allcov_df %>% filter(n_seqs > 0) %>% select(n_family) %>% table %>% t %>% custom_kable(caption = "Families")
-allcov_df %>% filter(n_seqs > 0) %>% select(n_genus) %>% table %>% t %>% custom_kable(caption = "Genera")
+allcov_df %>% filter(n_seqs > 0) %>% select(n_group) %>% table %>% t %>% custom_kable(caption = "Groups")
 ```
 
 ### Viruses per host
@@ -149,6 +149,7 @@ allcov_meta_df %>% filter(!is.na(class_name)) %>% group_by(class_name) %>% summa
 allcov_meta_df %>% filter(!is.na(order_name)) %>% group_by(order_name) %>% summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>% arrange(-n_sequences) %>% custom_kable %>% scroll_box(width = "100%", height = "250px") 
 allcov_meta_df %>% filter(!is.na(family_name)) %>% group_by(family_name) %>% summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>% arrange(-n_sequences) %>% custom_kable %>% scroll_box(width = "100%", height = "250px")
 allcov_meta_df %>% filter(!is.na(genus_name)) %>% group_by(genus_name) %>% summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>% arrange(-n_sequences) %>% custom_kable %>% scroll_box(width = "100%", height = "250px")
+allcov_meta_df %>% filter(!is.na(group_name)) %>% group_by(group_name) %>% summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>% arrange(-n_sequences) %>% custom_kable %>% scroll_box(width = "100%", height = "250px")
 ```
 
 **Number of coronaviruses per host group, EID2:**

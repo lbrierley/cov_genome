@@ -255,13 +255,30 @@ if (load_prev_seqs == TRUE){
 # Append full metadata host label taxonomy to sequence-level data
 allcov_meta_df %<>% left_join(df_tax_matcher, by = "accessionversion")
 
+# Create functional host group variable for use as an ML outcome
+allcov_meta_df %<>% 
+  mutate(group_name = 
+           case_when(
+             species_name == "Homo sapiens" ~ "human",
+             family_name == "Suidae" ~ "swine",
+             family_name == "Camelidae" ~ "camel",
+             family_name == "Bovidae" ~ "bovid",
+             family_name %in% c("Craseonycteridae", "Hipposideridae", "Megadermatidae", "Pteropodidae", "Rhinolophidae", "Rhinopomatidae") ~ "yinbat",
+             family_name %in% c("Emballonuridae", "Furipteridae", "Miniopteridae", "Molossidae", "Mormoopidae", "Mystacinidae", "Myzopodidae", "Natalidae", "Noctilionidae", "Nycteridae", "Phyllostomidae", "Thyropteridae", "Cistugidae", "Vespertilionidae")
+ ~ "yangbat",
+             order_name == "Primates" ~ "primate",
+             order_name == "Rodentia" ~ "rodent",
+             order_name == "Carnivora" ~ "carnivore",
+             class_name == "Aves" ~ "aves"
+           )
+  )
+
 # Count host categories per coronavirus and append to species-level data
 allcov_df %<>% left_join(allcov_meta_df %>% 
                            group_by(taxid) %>% 
-                           summarise_at(c("class_name","order_name","family_name","genus_name","species_name"), n_distinct, na.rm = TRUE) %>%
+                           summarise_at(c("class_name","order_name","family_name","genus_name","species_name", "group_name"), n_distinct, na.rm = TRUE) %>%
                            rename_at(vars(-taxid), ~ paste0("n_", gsub("_name","",.))),
                          by = c("childtaxa_id" = "taxid"))
-
 
 # Read FASTA back in in coRdon format and calculate codon table
 cov_cord <- readSet(file="data\\allcov_GenBank.fasta")
@@ -305,20 +322,20 @@ cov_cord %<>% subseq(start = cov_enc_df$start_new)
 
 # Calculate genomic composition metrics for individual CDS
 cov_enc_df %<>% cbind(data.frame(enc = cov_cord %>% codonTable %>% ENC(stop.rm=FALSE),              # Calculate Effective Number of Codons (including STOP codons)
-                         cov_cord %>% letterFrequency("GC",as.prob=TRUE)*100 %>% as.vector, # Calculate % GC content
-                         cov_cord %>% letterFrequency(c("A","C","G","T")),                  # Nucleotide counts
-                         cov_cord %>% dinucleotideFrequency,                                # Dinucleotide counts
-                         cov_cord %>% DNAStringSet(start=1) %>% 
-                           dinucleotideFrequency(step = 3) %>% as.data.frame %>%
-                           rename_all(., ~ paste0(., "_p1")),                               # Dinucleotide counts between positions 1-2 only
-                         cov_cord %>% DNAStringSet(start=2) %>% 
-                           dinucleotideFrequency(step = 3) %>% as.data.frame %>%
-                           rename_all(., ~ paste0(., "_p2")),                               # Dinucleotide counts between positions 2-3 only
-                         cov_cord %>% DNAStringSet(start=3) %>% 
-                           dinucleotideFrequency(step = 3) %>% as.data.frame %>%
-                           rename_all(., ~ paste0(., "_p3")),                               # Dinucleotide counts between positions 3-1 only
-                         cov_cord %>% codonTable %>% codonCounts                            # Codon counts
-                         #                        cov_cord %>% oligonucleotideFrequency(6, step=3)                   # Codon pair counts - NOT USING FOR NOW
+                                 cov_cord %>% letterFrequency("GC",as.prob=TRUE)*100 %>% as.vector, # Calculate % GC content
+                                 cov_cord %>% letterFrequency(c("A","C","G","T")),                  # Nucleotide counts
+                                 cov_cord %>% dinucleotideFrequency,                                # Dinucleotide counts
+                                 cov_cord %>% DNAStringSet(start=1) %>% 
+                                   dinucleotideFrequency(step = 3) %>% as.data.frame %>%
+                                   rename_all(., ~ paste0(., "_p1")),                               # Dinucleotide counts between positions 1-2 only
+                                 cov_cord %>% DNAStringSet(start=2) %>% 
+                                   dinucleotideFrequency(step = 3) %>% as.data.frame %>%
+                                   rename_all(., ~ paste0(., "_p2")),                               # Dinucleotide counts between positions 2-3 only
+                                 cov_cord %>% DNAStringSet(start=3) %>% 
+                                   dinucleotideFrequency(step = 3) %>% as.data.frame %>%
+                                   rename_all(., ~ paste0(., "_p3")),                               # Dinucleotide counts between positions 3-1 only
+                                 cov_cord %>% codonTable %>% codonCounts                            # Codon counts
+                                 #                        cov_cord %>% oligonucleotideFrequency(6, step=3)                   # Codon pair counts - NOT USING FOR NOW
 )) %>% rename_at(vars(G.C), ~ "GC_content")
 
 ## Helper functions to check correct adjustment of CDS start locations
@@ -509,7 +526,6 @@ merge(merge(cov_spikes_df %>% select(accessionversion, taxid, title, complete, l
       by.y = "childtaxa_id",
       all.x = TRUE) %>% select(accessionversion, title, taxid, genus, childtaxa_name, createdate, complete, length, subname) %>% write.csv(., "data\\allcov_spikes_metadata.csv")
 
-
 #######################################
 # Calculate genome composition biases #
 #######################################
@@ -525,67 +541,34 @@ cov_wg_df %<>% left_join(allcov_df %>% select(childtaxa_id, childtaxa_name, genu
                          by = c("taxid" = "childtaxa_id"))
 
 # Append host metadata information
-cov_spikes_df %<>% left_join(allcov_meta_df %>% select(accessionversion, class_name, order_name, family_name, genus_name, species_name),
+cov_spikes_df %<>% left_join(allcov_meta_df %>% select(accessionversion, class_name, order_name, family_name, genus_name, species_name, group_name),
                              by = "accessionversion")
 
-cov_wg_df %<>% left_join(allcov_meta_df %>% select(accessionversion, class_name, order_name, family_name, genus_name, species_name),
+cov_wg_df %<>% left_join(allcov_meta_df %>% select(accessionversion, class_name, order_name, family_name, genus_name, species_name, group_name),
                          by = "accessionversion")
-
-
-
-
 
 ############
 # Heatmaps #
 ############
 
-# Take a random sample just to illustrate heatmap size for 420 viruses
-mat_data <- cov_spikes_df %>% sample_n(420) 
-
-heatmap.2(mat_data %>% 
-            set_rownames(.$accessionversion) %>% 
-            select(matches("^[A|C|G|T][A|C|G|T]_Bias$")) %>% 
-            as.matrix,
-          density.info="none", trace="none", margins=c(12,12), dendrogram="row", Colv="NA", 
-          # labRow = cov_pca_df$taxid,   # specify row labels = species?
-          RowSideColors = mat_data %>% mutate(rowsidecol = case_when(                       # Set side colours using same genus colours as ggplots elsewhere
-            genus == "Alphacoronavirus" ~ "#F8766D",
-            genus == "Betacoronavirus" ~ "#A3A500",
-            genus == "Deltacoronavirus" ~ "#00BF7D",
-            genus == "Gammacoronavirus" ~ "#00B0F6",
-            genus == "unclassified" ~ "#E76BF3",
-          )) %>% pull(rowsidecol),
-          col = colorRampPalette(c("dodgerblue", "gray10", "firebrick2"))(n = 55),
-          breaks = c(seq(0,0.95,length=25), seq(0.951,1.05,length=6), seq(1.051,2.0,length=25)))
-
-par(lend = 1)           # square line ends for the color legend
-legend(x=0.75,y=0.2, legend = mat_data$genus %>% unique %>% sort, fill = c("#F8766D", "#A3A500", "#00BF7D", "#00B0F6", "#E76BF3"), ncol = 5)
-
-
-
-
-
-
-
-
-
-
-#################################################
-# OLD TEMP place to check slippage/frameshifts  #
-#################################################
-
-# ### MANUAL CORRECTION HELPER CODE
-# seq <- f$`lcl|NC_039196.1_cds_YP_009512959.1_3` %>% as.vector() %>% as.list %>% do.call(paste0, .)
-# substring(seq,seq(1,nchar(seq),3),seq(3,nchar(seq),3))
-# aminoseq <- "MSSHQIQQVKHGLESLQEIKNNPPSSQDVNLAREIYESIRQTGTSSVQGGAIAGDNITSGGNNDSMYSQGPSPPISSVNKNIEGPTGFDHSGLWDPEGNLCMLFESDDDENHYSEINGRSSAIEGLDEQDNENSIIKQPGNQCTEGVSKTDSSLSSQETTLSVGGSDIPGAGISTCASLDITVNELEDATVRNSNNMKGNWPIPKLLVKPPPRVKTSVDHSNPLKGGHRREISLTWDGDYIIREEWCNPICTPIYSTCKRLQCRCKQCPSTCPKCE"
-# str_locate_all(aminoseq, "K")
-# substring(seq,seq(1,nchar(seq),3),seq(3,nchar(seq),3))[225:227]
-# substring(seq, (138)*3, (139)*3-1)
+# # Take a random sample just to illustrate heatmap size for 420 viruses
+# mat_data <- cov_spikes_df %>% sample_n(420) 
 # 
-# n <- 225
-# substring(seq, (n-1)*3+1, (n)*3) # Gives nth codon
-# # If n is the codon the insert goes after, insert starts from position n*3+1
+# heatmap.2(mat_data %>% 
+#             set_rownames(.$accessionversion) %>% 
+#             select(matches("^[A|C|G|T][A|C|G|T]_Bias$")) %>% 
+#             as.matrix,
+#           density.info="none", trace="none", margins=c(12,12), dendrogram="row", Colv="NA", 
+#           # labRow = cov_pca_df$taxid,   # specify row labels = species?
+#           RowSideColors = mat_data %>% mutate(rowsidecol = case_when(                       # Set side colours using same genus colours as ggplots elsewhere
+#             genus == "Alphacoronavirus" ~ "#F8766D",
+#             genus == "Betacoronavirus" ~ "#A3A500",
+#             genus == "Deltacoronavirus" ~ "#00BF7D",
+#             genus == "Gammacoronavirus" ~ "#00B0F6",
+#             genus == "unclassified" ~ "#E76BF3",
+#           )) %>% pull(rowsidecol),
+#           col = colorRampPalette(c("dodgerblue", "gray10", "firebrick2"))(n = 55),
+#           breaks = c(seq(0,0.95,length=25), seq(0.951,1.05,length=6), seq(1.051,2.0,length=25)))
 # 
-# ins_pos <- 421 # Insertion position
-# ins_seq <- "G" # Insertion sequence
-# gsub(paste0('^([a-z]{',ins_pos-1,'})([a-z]+)$'), paste0('\\1',ins_seq,'\\2'), seq, perl=TRUE) %>% writeClipboard
+# par(lend = 1)           # square line ends for the color legend
+# legend(x=0.75,y=0.2, legend = mat_data$genus %>% unique %>% sort, fill = c("#F8766D", "#A3A500", "#00BF7D", "#00B0F6", "#E76BF3"), ncol = 5)
