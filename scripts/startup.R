@@ -86,3 +86,20 @@ render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output_spikes.Rmd"
 render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output_wgs.Rmd", 
        output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output_wgs.html")
 
+
+
+
+
+
+
+render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_vector_output_spikes.Rmd", 
+       output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_vector_output_spikes.html")
+
+# render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_vector_output_wgs.Rmd", 
+#        output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_vector_output_wgs.html")
+
+render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_matrix_output_spikes.Rmd", 
+       output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_matrix_output_spikes.html")
+
+# render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_matrix_output_wgs.Rmd", 
+#        output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_matrix_output_wgs.html")

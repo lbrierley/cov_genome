@@ -8,7 +8,6 @@ library(janitor)
 library(matrixStats)
 library(magrittr)
 library(pROC)
-library(pbapply)
 library(randomForest)
 library(tidyverse)
 
@@ -29,7 +28,7 @@ min_n_seq_category <- 50
 # If outcome not in the sequence-level dataset, merge it in from the species-level dataset
 if (!(outcome_name %in% names(cov_spikes_df))){
   model_df_predownsample <- cov_spikes_df %>% left_join(allcov_df %>% select(childtaxa_id, !! sym(outcome_name)),
-                                          by = c("taxid" = "childtaxa_id")) %>%
+                                                        by = c("taxid" = "childtaxa_id")) %>%
     mutate(outcome = factor(!! sym(outcome_name))) %>%
     filter(!is.na(outcome))
 } else {
@@ -39,21 +38,6 @@ if (!(outcome_name %in% names(cov_spikes_df))){
 }
 
 # Downsample groups of outcome variable
-
-# Tables of outcome variable counts
-model_df_predownsample %>% 
-  group_by(outcome) %>% 
-  summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>% 
-  arrange(-n_sequences)
-
-model_df_predownsample %>%
-  filter(outcome == "aves") %>%
-  filter(!is.na(genus_name)) %>%
-  group_by(genus_name) %>%
-  summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>%
-  arrange(-n_sequences)
-
-
 # For each group, if n > 200 take proportional sample based on coronavirus taxids represented to give approximately 200 data points
 templist = list() # Setup empty list
 
@@ -94,7 +78,8 @@ training_rows = createDataPartition(paste(model_df$outcome, model_df$genus), p =
 model_df %<>% select(-genus) %>% mutate(outcome = as.factor(outcome))
 
 # Specify formula used
-formula_used <- formula(outcome ~ .)
+preds <- model_df %>% select(-outcome, -taxid, -childtaxa_name, -accessionversion) %>% remove_constant %>% names
+formula_used <- as.formula(paste0("outcome ~ ", paste(preds, collapse='+')))
 
 # Raw probability of outcome classes
 vector_probs <- prop.table(table(model_df$outcome))
@@ -106,28 +91,39 @@ vector_probs <- prop.table(table(model_df$outcome))
 full_svm_analysis <- function(x, data){
   
   train <- data %>%
-    filter(row_number() %in% x) %>%
-    remove_constant %>%
-    select(-c(taxid, childtaxa_name, accessionversion))
+    filter(row_number() %in% x) 
   
   test <- data %>%
-    filter(!(row_number() %in% x)) %>%
-    remove_constant %>%
-    select(-c(taxid, childtaxa_name, accessionversion))
+    filter(!(row_number() %in% x))
   
   test_names <- data %>%
     filter(!(row_number() %in% x)) %>%
     select(taxid, childtaxa_name, accessionversion)
   
-  # Train and validate SVM (tuning gamma and cost parameters) through 10-fold cross-validation
+  # # Train and validate SVM (tuning gamma and cost parameters) through 10-fold cross-validation using caret (not working)
+  # train(x = train_df %>% select(preds) %>% as,data,frame,
+  #       y = train_df %>% pull(outcome),
+  #       method = "svmRadial",
+  #       type="C-classification",
+  #       preProc = c("center", "scale"),
+  #       metric = "Accuracy",
+  #       trainControl(method = 'cv', 
+  #                    number = 10,
+  #                    verboseIter = TRUE,
+  #                    classProbs = TRUE),
+  #       tuneGrid = expand.grid(sigma = seq(from = 0.01, to = 1, length = 3),
+  #                              C = seq(from = 0.01, to = 1, length = 3))
+  # )
+  
+  # Train and validate SVM (tuning gamma and cost parameters) through 10-fold cross-validation using e1071
   tuned_svm <- tune.svm(formula_used, 
-      data=train,
-      type="C-classification",
-      kernel="radial",
-      gamma = seq(from = 0.01, to = 1, by = 0.5),
-      cost = seq(from = 0.01, to = 1, by = 0.5),
-      probability=TRUE,
-      tune_control = tune.control(cross = 10)) 
+                        data=train,
+                        type="C-classification",
+                        kernel="radial",
+                        gamma = seq(from = 0.01, to = 1, length = 2),
+                        cost = seq(from = 0.01, to = 1, length = 2),
+                        probability=TRUE,
+                        tune_control = tune.control(cross = 10)) 
   
   # Obtain best performing model
   svm <- tuned_svm$best.model
@@ -174,7 +170,7 @@ full_svm_analysis <- function(x, data){
 
 svm_start <- Sys.time()
 # Store ensemble results as list of lists
-svm_list <- pblapply(training_rows, full_svm_analysis, data=model_df)
+svm_list <- lapply(training_rows, full_svm_analysis, data=model_df)
 svm_end <- Sys.time()
 
 ######################
@@ -204,9 +200,9 @@ full_rf_analysis <- function(x, data){
                                 na.action=na.exclude, 
                                 keep.forest=TRUE, 
                                 proximity=TRUE, 
-                                nodesize = seq(from = 5, to = 20, by = 10),
-                                ntree =  seq(from = 1000, to = 3000, by = 1000),   # reduce this?
-                                mtry = seq(from = 5, to = 20, by = 10))
+                                nodesize = seq(from = 5, to = 20, length = 5),
+                                ntree =  seq(from = 500, to = 2000, length = 5),   # reduce this?
+                                mtry = seq(from = 5, to = 20, length = 5))
   
   random_forest <- tuned_rf$best.model
   
@@ -255,13 +251,15 @@ full_rf_analysis <- function(x, data){
 
 rf_start <- Sys.time()
 # Store ensemble RF results as list of lists
-rf_list <- pblapply(training_rows, full_rf_analysis, data=model_df)
+rf_list <- lapply(training_rows, full_rf_analysis, data=model_df)
 rf_end <- Sys.time()
 
 #####################
 # Store all outputs #
 #####################
 
-save(rf_start, rf_end, svm_start, svm_end,
+save(model_df,
+     model_df_predownsample,
+     rf_start, rf_end, svm_start, svm_end,
      rf_list, svm_list,
      file=paste0("listresults_rf_svm", format(Sys.time(), "%d_%m_%y"), ".RData"))

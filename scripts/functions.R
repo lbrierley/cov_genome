@@ -52,8 +52,8 @@ genomic_pca <- function(df, vars, outcome, choices = 1:2){
   
   # Merge in relevant outcome column if it doesn't already exist
   if (!(outcome %in% names(df))){
-  df %<>% left_join(allcov_df %>% select(childtaxa_id, !! sym(outcome)),
-                 by = c("taxid" = "childtaxa_id"))
+    df %<>% left_join(allcov_df %>% select(childtaxa_id, !! sym(outcome)),
+                      by = c("taxid" = "childtaxa_id"))
   }
   
   # Create relevant principal components analysis
@@ -255,13 +255,11 @@ matrixPlot <- function(df, outcome_name) {
     spread(accessionversion.y, weight, fill = 0) %>%
     column_to_rownames("accessionversion.x") %>%
     as.matrix
-  
-  
-  png(file = paste0("outputs\\matrix_",outcome_name,".png"), units = "in", height = 6, width = 6, res = 300)
-  par(mar=c(0, 0, 0, 0))
-  image(t(matrix_grid), useRaster=TRUE, axes=FALSE, col = c("white", "black"))
-  text(0.9,0.1,as.numeric(round(prop.table(table(matrix_grid[lower.tri(matrix_grid)]))[2]*100, 2)), col = "red", cex=2) # Print % nonzero, i.e. proportion of pairs with shared host
-  dev.off()
+    png(file = paste0("markdown\\figs\\matrix_",deparse(substitute(df)),"_",outcome_name,".png"), units = "in", height = 6, width = 6, res = 300)
+    par(mar=c(0, 0, 0, 0))
+    image(t(matrix_grid), useRaster=TRUE, axes=FALSE, col = c("white", "black"))
+    text(0.9,0.1,as.numeric(round(prop.table(table(matrix_grid[lower.tri(matrix_grid)]))[2]*100, 2)), col = "red", cex=2) # Print % nonzero, i.e. proportion of pairs with shared host
+    dev.off()
 }
 
 

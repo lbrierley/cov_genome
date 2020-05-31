@@ -1,0 +1,51 @@
+---
+title: "Lab book: ML outputs (vector), spike proteins"
+output: radix::radix_article
+geometry: margin=1in, includeheadfoot
+fig_captions: true
+fontsize: 3pt
+header-includes:
+   - \usepackage{longtable}
+   - \usepackage{fancyhdr}
+   - \fancyfoot[LE,RO]{\thepage}
+author:
+  - name: Liam Brierley
+    affiliation: University of Liverpool
+date: '`r format(Sys.Date(), "%Y-%m-%d")`'
+---
+\pagenumbering{arabic}
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, error=TRUE)
+
+custom_kable <- function(x, caption=NULL) {
+   kable(x, caption=caption) %>% kable_styling(font_size = 4, bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T)
+}
+
+# Load in previous ML results
+#load("listresults_rf_svm_31_05_20.RData")
+```
+
+**Summary of host group data represented:**
+
+```{r}
+model_df_predownsample %>% 
+   group_by(outcome) %>% 
+   summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>% 
+   arrange(-n_sequences) %>%
+   kable(caption = "CoV spike sequences, CoV species represented per host group before downsampling")
+
+model_df %>% 
+   group_by(outcome) %>% 
+   summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>% 
+   arrange(-n_sequences) %>%
+   kable(caption = "CoV spike sequences, CoV species represented per host group after downsampling (modelled data)")
+
+round(prop.table(table(model_df$outcome)),3) %>% t %>%
+   kable(caption = "Raw probabilities of host group")
+
+model_df_predownsample %>% 
+   filter(accessionversion %in% model_df$accessionversion) %>% 
+   summarise_at(c("class_name","order_name","family_name","genus_name","species_name"), n_distinct, na.rm = TRUE) %>% 
+   kable(caption = "n host taxonomic levels represented total among modelled data")
+```

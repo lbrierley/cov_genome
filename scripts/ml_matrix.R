@@ -19,15 +19,6 @@ load("cov_ML_dfs_28_05_20.RData")
 # Prepare data frame for modelling and define set of variables used in the model #
 ##################################################################################
 
-## Not here: check matrices
-matrixPlot(cov_spikes_df, "group_name")
-matrixPlot(cov_spikes_df, "genus_name")
-matrixPlot(cov_spikes_df, "species_name")
-matrixPlot(cov_spikes_df, "family_name")
-matrixPlot(cov_spikes_df, "order_name")
-matrixPlot(cov_spikes_df, "class_name")
-
-
 # Set options
 outcome_name <- "order_name"
 use_stop_codons <- TRUE
