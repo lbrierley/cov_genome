@@ -16,6 +16,8 @@ date: '`r format(Sys.Date(), "%Y-%m-%d")`'
 \pagenumbering{arabic}
 
 ```{r global_options, include=FALSE}
+library(patchwork)
+
 knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, error=TRUE)
 
 custom_kable <- function(x, caption=NULL) {
@@ -23,7 +25,7 @@ custom_kable <- function(x, caption=NULL) {
 }
 
 # Load in previous ML results
-#load("listresults_rf_svm_31_05_20.RData")
+load("C:\\Users\\Liam\\Desktop\\CoV Genomics\\listresults_ml_vector_31_05_20.RData")
 ```
 
 **Summary of host group data represented:**
@@ -48,4 +50,80 @@ model_df_predownsample %>%
    filter(accessionversion %in% model_df$accessionversion) %>% 
    summarise_at(c("class_name","order_name","family_name","genus_name","species_name"), n_distinct, na.rm = TRUE) %>% 
    kable(caption = "n host taxonomic levels represented total among modelled data")
+```
+
+**ML options:**
+Use stop codons set to _`r use_stop_codons`_.
+
+**Parameters from grid search, SVM**:
+```{r svm_gridsearch, results="asis", layout="l-body-outset", fig.height=4.0, fig.width=6.0}
+ggplot(svm_list$Resample1$tuned_obj$performances, aes(x=gamma, y=cost, fill=1-error)) +
+   geom_tile() + 
+   scale_fill_distiller(palette="RdYlBu", direction=1) +
+   labs(fill = "Accuracy") +
+   theme_bw()
+```
+
+_Low gamma, high cost gives best accuracy_
+
+**Parameters from grid search, RF**:
+```{r rf_gridsearch, results="asis", layout="l-body-outset", fig.height=4.0, fig.width=6.0}
+plot_ly(rf_list$Resample1$tuned_obj$performances, x = ~nodesize, y = ~mtry, z = ~ntree, type = 'scatter3d', mode = 'markers',
+        marker = list(symbol = "square", color = ~1-error, colorbar = list(title="Accuracy"), colorscale = list(c(0,'#dc412e'), c(0.5, '#fffcbb'), c(1,'#4575b4'))))
+```
+
+_Low nodesize best, but accuracy indifferent to mtry, ntree_
+
+**Confusion matrices, multiclass AUC:**
+```{r}
+svm_list$Resample1$matrix_test$overall %>% round(., 3) %>% t %>%
+   kable(caption = "Diagnostics, SVM")
+svm_list$Resample1$matrix_test$table %>%
+   kable(caption = "Confusion matrix, SVM")
+print(svm_list$Resample1$AUC)
+
+rf_list$Resample1$matrix_test$overall %>% round(., 3) %>% t %>%
+   kable(caption = "Diagnostics, RF")
+rf_list$Resample1$matrix_test$table %>%
+   kable(caption = "Confusion matrix, RF")
+print(rf_list$Resample1$AUC)
+```
+
+**Misclassified sequences:**
+```{r}
+svm_list$Resample1$predict_test %>% 
+   filter(outcome != pred_class) %>% 
+   select(childtaxa_name, accessionversion, outcome, pred_class) %>%
+   kable(caption = "SVM")
+
+rf_list$Resample1$predict_test %>% 
+   filter(outcome != pred_class) %>% 
+   select(childtaxa_name, accessionversion, outcome, pred_class) %>%
+   kable(caption = "RF")
+```
+
+**Variable importance (RF only):**
+```{r varimp, results="asis", layout="l-body-outset", fig.height=6.0, fig.width=8.0}
+ggplot(data=rf_list$Resample1$varimp %>%
+          mutate(name = fct_reorder(name, relGini),
+                 type = case_when(grepl("^[A|C|G|T]_Bias$", name) ~ "nucs",
+                                  grepl("^[A|C|G|T][A|C|G|T]_p[1|2|3]_Bias", name) ~ "dinucs",
+                                  grepl("^[A|C|G|T][A|C|G|T][A|C|G|T]_Bias$", name) ~ "codons")) %>%
+          arrange(-relGini) %>%
+          slice(1:30), aes(x=name, y=relGini, fill=type)) +
+   stat_summary(geom = "bar", fun.y = "mean") +
+   coord_flip(ylim=c(0,1.02), expand=FALSE) + scale_y_continuous(breaks=seq(0,1,0.1)) +
+   theme_bw(base_size = 11) + xlab("Predictor variable") + ylab("Relative importance") +
+   ggtitle("Variable importance, top 30 predictors") +
+   theme(legend.justification=c(1,1), legend.position=c(.98,.35), panel.spacing = unit(1.1, "lines")) +
+   scale_fill_manual(values=cbbPalette, name = "Predictor type")
+```
+
+Mixed, though few p3 dinucleotides. STOP codons rank at _`r rf_list$Resample1$varimp %>% arrange(-relGini) %>% mutate(r = 1:nrow(rf_list$Resample1$varimp)) %>% filter(name %in% c("TGA_Bias", "TAG_Bias", "TAA_Bias")) %>% pull(r)`_ of _`r rf_list$Resample1$varimp %>% nrow`_ variables - not as informative when considering multiple host categories (or sequence host metadata?)
+
+**Partial dependence (RF only):**
+```{r pd, results="asis", layout="l-screen-inset", fig.height=10.0, fig.width=15.0}
+
+wrap_plots(p_1, p_2, p_3, p_4, p_5)
+
 ```
