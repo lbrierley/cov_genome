@@ -2,6 +2,11 @@
 # Define functions #
 ####################
 
+# Set up accessible colour blindness palette
+cbbPalette <- c("#E69F00", "#F0E442", "#56B4E9", "#009E73", "#D55E00")
+cbbPalette_full <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
+cbbPalette_bw <- c("#FFFFFF", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
 Seq_searcher <- function(x){
   Seq_result <- entrez_search(db="nuccore", term=paste0('txid', x, '[Organism:noexp] AND ', searchterm),
                               retmax=10000)
@@ -262,7 +267,70 @@ matrixPlot <- function(df, outcome_name) {
     dev.off()
 }
 
-
+matrixPlotSpplevel <- function(df, outcome_name) {
+  matrix_starter <- df %>% arrange(genus, taxid) %>% filter(!is.na(!! sym(outcome_name))) %>% select(taxid, !! sym(outcome_name)) %>% distinct()
+  
+  matrix_grid <- full_join(matrix_starter, 
+                           matrix_starter, 
+                           by = outcome_name) %>% 
+    select(-(!! sym(outcome_name))) %>% 
+    group_by(taxid.x, taxid.y) %>% 
+    summarise(weight = n()) %>%
+    spread(taxid.y, weight, fill = 0) %>%
+    column_to_rownames("taxid.x") %>%
+    as.matrix
+  
+  matrix_info <- matrix_starter %>% 
+    select(-!! sym(outcome_name)) %>%
+    distinct() %>%
+    left_join(allcov_df %>% select(childtaxa_id, childtaxa_name, genus), by = c("taxid" = "childtaxa_id")) %>%
+    mutate(genus = gsub("0","unclassified",genus),
+           rowsidecol = case_when(                       # Set side colours using same genus colours as ggplots elsewhere
+             genus == "Alphacoronavirus" ~ "#F8766D",
+             genus == "Betacoronavirus" ~ "#A3A500",
+             genus == "Deltacoronavirus" ~ "#00BF7D",
+             genus == "Gammacoronavirus" ~ "#00B0F6",
+             genus == "unclassified" ~ "#E76BF3",
+           ))
+  
+  png(file = paste0("markdown\\figs\\matrix_covspplevel_",deparse(substitute(df)),"_",outcome_name,".png"), units = "in", height = 30, width = 30, res = 300)
+  heatmap.2(matrix_grid,
+            density.info="none", trace="none", dendrogram="none",
+            Rowv=NA, Colv=NA,
+            labRow = matrix_info$childtaxa_name,   # specify row, column labels = species
+            labCol = matrix_info$childtaxa_name,
+            RowSideColors = matrix_info$rowsidecol,
+            col = c("gray10", "gray50", "gray90"),
+            breaks = c(-0.5,0.5,1.5,2.5),
+            lhei=c(0.4,10), lwid=c(0.6,10),
+            sepwidth=c(0.1,0.1),
+            sepcolor="black",
+            colsep=1:ncol(matrix_grid),
+            rowsep=1:nrow(matrix_grid),
+            margins = c(15, 15))
+  par(lend = 1)           # square line ends for the color legend
+  legend(xpd = TRUE, x=0.08, y=1.02, legend = matrix_info$genus %>% unique %>% sort, fill = c("#F8766D", "#A3A500", "#00BF7D", "#00B0F6", "#E76BF3"), ncol = 5)
+  dev.off()
+  
+  png(file = paste0("markdown\\figs\\matrix_covspplevel_",deparse(substitute(df)),"_",outcome_name,"_ordered.png"), units = "in", height = 30, width = 30, res = 300)
+  heatmap.2(matrix_grid,
+            density.info="none", trace="none", dendrogram="none",
+            Rowv=TRUE, Colv=TRUE, revC=TRUE,
+            labRow = matrix_info$childtaxa_name,   # specify row, column labels = species
+            labCol = matrix_info$childtaxa_name,
+            RowSideColors = matrix_info$rowsidecol,
+            col = c("gray10", "gray50", "gray90"),
+            breaks = c(-0.5,0.5,1.5,2.5),
+            lhei=c(0.4,10), lwid=c(0.6,10),
+            sepwidth=c(0.1,0.1),
+            sepcolor="black",
+            colsep=1:ncol(matrix_grid),
+            rowsep=1:nrow(matrix_grid),
+            margins = c(15, 15))
+  par(lend = 1)           # square line ends for the color legend
+  legend(xpd = TRUE, x=0.08, y=1.02, legend = matrix_info$genus %>% unique %>% sort, fill = c("#F8766D", "#A3A500", "#00BF7D", "#00B0F6", "#E76BF3"), ncol = 5)
+  dev.off()
+}
 
 ml_extractor <- function(f, type="full"){
   

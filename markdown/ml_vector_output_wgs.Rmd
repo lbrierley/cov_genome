@@ -1,5 +1,5 @@
 ---
-title: "Lab book: ML outputs (vector), spike proteins"
+title: "Lab book: ML outputs (vector), whole genome sequences"
 output: radix::radix_article
 geometry: margin=1in, includeheadfoot
 fig_captions: true
@@ -30,7 +30,7 @@ custom_kable <- function(x, caption=NULL) {
 }
 
 # Load in previous ML results
-load("C:\\Users\\Liam\\Desktop\\CoV Genomics\\listresults_ml_vector_spike_17_07_20.RData")
+load("C:\\Users\\Liam\\Desktop\\CoV Genomics\\listresults_ml_vector_wg_17_07_20.RData")
 
 # Raw probability of outcome classes
 vector_probs <- prop.table(table(model_df$outcome))
@@ -200,43 +200,67 @@ ggplot(varimp %>%
    ggtitle("Variable importance, top 30 predictors") +
    theme(legend.justification=c(1,1), legend.position=c(.98,.35), panel.spacing = unit(1.1, "lines")) +
    scale_fill_manual(values=cbbPalette, name = "Predictor type")
+```
 
-# Save varimp for comparison
-saveRDS(varimp, "varimp_spike.rds")
+Mixed, though few nucleotides. STOP codons rank at _`r varimp %>% group_by(name) %>% summarise(mean = mean(relGini)) %>% mutate(r = 1:length(varimp_order)) %>% filter(name %in% c("TGA_Bias", "TAG_Bias", "TAA_Bias")) %>% pull(r)`_ of _`r length(varimp_order)`_ variables - not as informative considering multiple host categories (or sequence host metadata) cf.PCAs of human:nonhuman virus spp.
+
+**Spike-wgs comparison:**
+```{r varimp_corr, results="asis", layout="l-body-outset", fig.height=10.0, fig.width=10.0}
+varimp_spike <- readRDS("varimp_spike.rds")
+
+varimp_comp <- varimp %>%                            
+   group_by(name) %>% 
+   summarise(mean_wgs = mean(relGini)) %>%
+   left_join(varimp_spike %>%
+                group_by(name) %>% 
+                summarise(mean_spike = mean(relGini)),
+             by = "name") %>%
+          mutate(type = case_when(grepl("^[A|C|G|T]_Bias$", name) ~ "nucs",
+                                  grepl("^[A|C|G|T][A|C|G|T]_p[1|2|3]_Bias", name) ~ "dinucs",
+                                  grepl("^[A|C|G|T][A|C|G|T][A|C|G|T]_Bias$", name) ~ "codons"))
+
+ggplot(varimp_comp,
+       aes(x = mean_wgs, y = mean_spike, colour=type)) +
+   geom_point(size = 4, alpha = 0.5) +
+   scale_colour_manual(values=cbbPalette, name = "Predictor type") +
+   xlab("mean relative variable importance, whole genome sequences") +
+   ylab("mean relative variable importance, spike proteins") +
+   annotate("text", x = 0.9, y = 0.9, label = paste0("r = ",round(cor(varimp_comp$mean_wgs, varimp_comp$mean_spike, method = "spearman"),3))) +
+   theme_bw()
 
 ```
 
-Mixed, though few p3 dinucleotides. STOP codons rank at _`r varimp %>% group_by(name) %>% summarise(mean = mean(relGini)) %>% mutate(r = 1:length(varimp_order)) %>% filter(name %in% c("TGA_Bias", "TAG_Bias", "TAA_Bias")) %>% pull(r)`_ of _`r length(varimp_order)`_ variables - not as informative considering multiple host categories (or sequence host metadata) cf.PCAs of human:nonhuman virus spp.
+Very different importances between the spike protein and the whole genome....
 
 **Partial dependence (RF only):**
 ```{r include=FALSE}
 
 # Load in stored PD
-load("C:\\Users\\Liam\\Desktop\\CoV Genomics\\listresults_pd_spike_21_07_20.RData")
+load("C:\\Users\\Liam\\Desktop\\CoV Genomics\\listresults_pd_wg_21_07_20.RData")
 
 vars_to_pd <- varimp_order[1:5]
 
 for (i in 1:length(vars_to_pd)){
-  
-  plot_df <- lapply(list_PD, function(x) x[[vars_to_pd[i]]]) %>% bind_rows
-  
-  #plot_df[,2:ncol(plot_df)] <- (plot_df[,2:ncol(plot_df)]/(1-plot_df[,2:ncol(plot_df)])) %>% mapply('/', ., (vector_probs/(1-vector_probs))) # calculate odds ratios
-  
-  assign(paste0("p_", i), ggplot(plot_df %>% melt(id.vars = vars_to_pd[i]), 
-                                 aes(x = !!sym(vars_to_pd[i]), y = value, color = variable, fill = variable)) +  
-           stat_summary(geom="ribbon", fun.data=
-#                          mean_cl_normal, 
-#                          mean_cl_boot, 
-                          median_hilow,
-                        fun.args=list(conf.int=0.95), alpha = 0.2,  colour = NA) +
-           stat_summary(geom="line", fun=mean, lwd = 1.5, alpha = 0.8) +
-           #geom_hline(yintercept=1, alpha = 0.3, color="grey50", lty="dashed", size=1) +
-           scale_color_manual(values=cbbPalette_full, name = "host") +
-           scale_fill_manual(values=cbbPalette_full, name = "host") +
-           ylab("probability") +
-           guides(color = FALSE, fill = FALSE) +
-           facet_wrap(~ variable) +
-           theme_bw())
+   
+   plot_df <- lapply(list_PD, function(x) x[[vars_to_pd[i]]]) %>% bind_rows
+   
+   #plot_df[,2:ncol(plot_df)] <- (plot_df[,2:ncol(plot_df)]/(1-plot_df[,2:ncol(plot_df)])) %>% mapply('/', ., (vector_probs/(1-vector_probs))) # calculate odds ratios
+   
+   assign(paste0("p_", i), ggplot(plot_df %>% melt(id.vars = vars_to_pd[i]), 
+                                  aes(x = !!sym(vars_to_pd[i]), y = value, color = variable, fill = variable)) +  
+             stat_summary(geom="ribbon", fun.data=
+                             #                          mean_cl_normal, 
+                             #                          mean_cl_boot, 
+                             median_hilow,
+                          fun.args=list(conf.int=0.95), alpha = 0.2,  colour = NA) +
+             stat_summary(geom="line", fun=mean, lwd = 1.5, alpha = 0.8) +
+             #geom_hline(yintercept=1, alpha = 0.3, color="grey50", lty="dashed", size=1) +
+             scale_color_manual(values=cbbPalette_full, name = "host") +
+             scale_fill_manual(values=cbbPalette_full, name = "host") +
+             ylab("probability") +
+             guides(color = FALSE, fill = FALSE) +
+             facet_wrap(~ variable) +
+             theme_bw())
 }
 ```
 

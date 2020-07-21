@@ -23,7 +23,7 @@ custom_kable <- function(x, caption=NULL) {
 }
 
 # Load in previous ML results
-#load("listresults_rf_svm_31_05_20.RData")
+#load("listresults_ml_matrix_31_05_20.RData")
 ```
 
 **Summary of CoV host-sharing patterns:**

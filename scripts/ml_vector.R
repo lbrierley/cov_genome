@@ -11,7 +11,7 @@ library(pROC)
 library(randomForest)
 library(tidyverse)
 
-# Load in previous ML results
+# Load in previous ML data
 load("cov_ML_dfs_28_05_20.RData")
 
 ##################################################################################
@@ -37,19 +37,43 @@ if (!(outcome_name %in% names(cov_spikes_df))){
     filter(!is.na(outcome))
 }
 
-# Downsample groups of outcome variable
-# For each group, if n > 200 take proportional sample based on coronavirus taxids represented to give approximately 200 data points
+# # Downsample groups of outcome variable
+# # For each group, if n > 200 take proportional sample based on coronavirus taxids represented to give approximately 200 data points
+# templist = list() # Setup empty list
+# 
+# for (i in 1:nlevels(model_df_predownsample$outcome)) {
+#   
+#   temp <- model_df_predownsample %>%
+#     filter(group_name == levels(model_df_predownsample$outcome)[i]) 
+#   
+#   if (nrow(temp) > 200){
+#     
+#     # Anything less than nrow(temp)/200, take it, otherwise randomly sample
+#     temp %<>% slice(suppressWarnings(createDataPartition(temp$taxid, p = 200/nrow(temp), list = FALSE, times=1)))
+#     
+#   }
+#   
+#   templist[[i]] <- temp
+#   
+# }
+# 
+# model_df <- bind_rows(templist)
+
+# Downsample group:species of outcome variable
+# For each group, if n > 20 downsample to 20
 templist = list() # Setup empty list
 
-for (i in 1:nlevels(model_df_predownsample$outcome)) {
+model_df_predownsample %<>% mutate(sampler = factor(paste(outcome,childtaxa_name)))
+
+for (i in 1:nlevels(model_df_predownsample$sampler)) {
   
   temp <- model_df_predownsample %>%
-    filter(group_name == levels(model_df_predownsample$outcome)[i]) 
+    filter(sampler == levels(model_df_predownsample$sampler)[i]) 
   
-  if (nrow(temp) > 200){
+  if (nrow(temp) > 20){
     
-    # Anything less than nrow(temp)/200, take it, otherwise randomly sample
-    temp %<>% slice(suppressWarnings(createDataPartition(temp$taxid, p = 200/nrow(temp), list = FALSE, times=1)))
+    # Randomly sample down to 20
+    temp %<>% sample_n(20)
     
   }
   
@@ -57,7 +81,7 @@ for (i in 1:nlevels(model_df_predownsample$outcome)) {
   
 }
 
-model_df <- bind_rows(templist)
+model_df <- bind_rows(templist) %>% select(-sampler)
 
 # Include nucleotide, dincucleotide and codon usage composition bias measurements, with option to exclude stop codon RSCU
 if (use_stop_codons == TRUE){
@@ -100,20 +124,43 @@ full_svm_analysis <- function(x, data){
     filter(!(row_number() %in% x)) %>%
     select(taxid, childtaxa_name, accessionversion)
   
-  # # Train and validate SVM (tuning gamma and cost parameters) through 10-fold cross-validation using caret (not working)
-  # train(x = train_df %>% select(preds) %>% as,data,frame,
-  #       y = train_df %>% pull(outcome),
-  #       method = "svmRadial",
-  #       type="C-classification",
-  #       preProc = c("center", "scale"),
-  #       metric = "Accuracy",
-  #       trainControl(method = 'cv', 
-  #                    number = 10,
-  #                    verboseIter = TRUE,
-  #                    classProbs = TRUE),
-  #       tuneGrid = expand.grid(sigma = seq(from = 0.01, to = 1, length = 3),
-  #                              C = seq(from = 0.01, to = 1, length = 3))
-  # )
+  
+  ### TEST AREA CARET
+  # Train and validate SVM (tuning gamma and cost parameters) through 10-fold cross-validation using caret (not working)
+  train(x = train %>% select(preds) %>% as.data.frame,
+        y = train %>% pull(outcome),
+        method = "svmRadial",
+        type="C-svc",
+        preProc = c("center", "scale"),
+        metric = "Accuracy",
+        trControl = trainControl(method = 'cv',
+                     number = 10,
+                     verboseIter = TRUE,
+                     classProbs = TRUE),
+        tuneGrid = expand.grid(.sigma = seq(from = 0.01, to = 1, length = 3),
+                               .C = seq(from = 0.01, to = 1, length = 3))
+  )
+  
+  
+  # Train and validate SVM (tuning gamma and cost parameters) through 10-fold cross-validation using caret (not working)
+  train(x = train %>% select(preds) %>% as.matrix,
+        y = train %>% pull(outcome),
+        method = "rf",
+        preProc = c("center", "scale"),
+        metric = "Accuracy",
+    #    nodesize = ,
+    #    ntree = ,
+        trControl = trainControl(method = 'cv',
+                     number = 10,
+                     verboseIter = TRUE,
+                     classProbs = TRUE),
+        tuneGrid = expand.grid(
+        # .nodesize = seq(from = 5, to = 20, length = 5),
+        #  .ntree =  seq(from = 500, to = 2000, length = 5),  
+          .mtry = seq(from = 5, to = 20, length = 5))
+  )
+  
+  ####
   
   # Train and validate SVM (tuning gamma and cost parameters) through 10-fold cross-validation using e1071
   tuned_svm <- tune.svm(formula_used, 
@@ -132,27 +179,12 @@ full_svm_analysis <- function(x, data){
   predict_class_test <- predict(svm, newdata=test, type="response")
   predict_prob_test <- predict(svm, newdata=test, probability=TRUE) %>% attributes() %>% .$probabilities %>% as.data.frame
   
-  # Calculate relative importance of predictors - unclear how to do this for SVM
-  
-  # # Extract partial dependence values - not including for now as takes too long to extract
-  # set <- train %>% select(-outcome) %>% names # Get predictor names
-  # list_PD <- list_prob <<- vector("list", length(set)) %>% setNames(set)
-  # 
-  # for (i in 1:length(set)){
-  #   list_PD[[i]] <- pdp::partial(svm, pred.var=set[i], train = train)
-  #   list_prob[[i]] <- pdp:: partial(svm, pred.var=set[i], train = train, prob=TRUE)
-  # }
-  
   # Store individual SVM results as a list 
   list(
     tuned_obj = tuned_svm,
     best_params = tuned_svm$best.parameters,
     
     # varimp = varimp,
-    
-    # # Partial dependence
-    # list_PD = list_PD,
-    # list_prob, = list_prob,
     
     # Confusion matrix, test set predictions
     matrix_test = confusionMatrix(predict_class_test, test$outcome),
@@ -210,16 +242,6 @@ full_rf_analysis <- function(x, data){
   predict_class_test <- predict(random_forest, newdata=test, type="response")
   predict_prob_test <- predict(random_forest, newdata=test, type="prob")
   
-  
-  # # Extract partial dependence values - not including for now as takes too long to extract
-  # set <- train %>% select(-outcome) %>% names # Get predictor names
-  # list_PD <- list_prob <<- vector("list", length(set)) %>% setNames(set)
-  # 
-  # for (i in 1:length(set)){
-  #   list_PD[[i]] <- pdp::partial(random_forest, pred.var=set[i], train = train)
-  #   list_prob[[i]] <- pdp:: partial(random_forest, pred.var=set[i], train = train, prob=TRUE)
-  # }
-  
   # Store individual RF results as a list
   list(
     
@@ -231,10 +253,6 @@ full_rf_analysis <- function(x, data){
       as.data.frame() %>%
       rownames_to_column("name") %>%
       mutate(relGini = MeanDecreaseGini/max(MeanDecreaseGini)),
-    
-    # # Partial dependence
-    # list_PD = list_PD,
-    # list_prob = list_prob,
     
     # Confusion matrix, test set predictions
     matrix_test = confusionMatrix(predict_class_test, test$outcome),
@@ -262,4 +280,4 @@ save(model_df,
      model_df_predownsample,
      rf_start, rf_end, svm_start, svm_end,
      rf_list, svm_list,
-     file=paste0("listresults_rf_svm", format(Sys.time(), "%d_%m_%y"), ".RData"))
+     file=paste0("listresults_ml_vector_", format(Sys.time(), "%d_%m_%y"), ".RData"))

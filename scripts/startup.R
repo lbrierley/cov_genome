@@ -63,6 +63,9 @@ min_wgs_length <- 20000
 max_wgs_length <- 32000
 min_spike_length <- 2000
 
+# Do you want to truncate sequences that are double-counted through frameshifts? (TRUE = use sequence as-is, FALSE = use sequence as-transcribed)
+frameshift_correct <- TRUE
+
 ###############
 # Run scripts #
 ###############
@@ -75,6 +78,7 @@ source("scripts\\process_cov_seq.R" )
 
 # Save data needed for ML
 save(allcov_df, cov_spikes_df, cov_wg_df, file = paste0("cov_ML_dfs_", format(Sys.time(), "%d_%m_%y"), ".RData"))
+#save(allcov_df, cov_wg_df, file = paste0("cov_ML_dfs_noframeshift_", format(Sys.time(), "%d_%m_%y"), ".RData"))
 
 # Render lab books
 render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\data_summary.Rmd", 
@@ -86,17 +90,11 @@ render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output_spikes.Rmd"
 render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output_wgs.Rmd", 
        output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\pca_output_wgs.html")
 
-
-
-
-
-
-
 render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_vector_output_spikes.Rmd", 
        output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_vector_output_spikes.html")
 
-# render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_vector_output_wgs.Rmd", 
-#        output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_vector_output_wgs.html")
+render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_vector_output_wgs.Rmd",
+       output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_vector_output_wgs.html")
 
 render("C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_matrix_output_spikes.Rmd", 
        output_file="C:\\Users\\Liam\\Desktop\\CoV Genomics\\markdown\\ml_matrix_output_spikes.html")
