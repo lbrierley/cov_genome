@@ -1,0 +1,2 @@
+"","Accuracy","Kappa","AccuracyLower","AccuracyUpper","AccuracyNull","AccuracyPValue","McnemarPValue","AUC","micro_F1","macro_F1"
+"1",0.735,0.696,0.7,0.769,0.16,0,NA,0.898,0.735,0.757
