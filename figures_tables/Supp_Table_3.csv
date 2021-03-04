@@ -1,0 +1,7 @@
+,set,Accuracy,Kappa,AccuracyLower,AccuracyUpper,AccuracyNull,AccuracyPValue,McnemarPValue,AUC,micro_F1,macro_F1
+1,data thinning,0.732,0.693,0.696,0.766,0.16,0,NA,0.9,0.845,0.756
+2,none,0.723,0.683,0.687,0.757,0.16,0,NA,0.902,0.839,0.74
+3,class weights,0.702,0.658,0.665,0.737,0.16,0,NA,0.903,0.825,0.721
+4,downsample,0.603,0.546,0.564,0.641,0.16,0,NA,0.847,0.752,0.641
+5,upsample,0.726,0.686,0.69,0.76,0.16,0,NA,0.911,0.841,0.745
+6,SMOTE,0.36,0.267,0.323,0.398,0.16,0,NA,0.748,0.529,0.406

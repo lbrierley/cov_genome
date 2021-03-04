@@ -41,7 +41,7 @@ gridsearch <- lapply(rf_list, function(x) {
     mtry = factor(mtry, levels = c("5", "12.5", "20"))
   )
 
-# Select holdout used
+# Specify held out data as test sets
 validate_used <- lapply(unique(model_df$taxid), function(x) {
   model_df %>% filter(taxid == x)
 })
@@ -78,7 +78,7 @@ for (i in seq_along(matrix_one_vs_all)) {
   positive.class <- levels(model_df$outcome)[i]
   # in the i-th iteration, use the i-th class as the positive class
   matrix_one_vs_all[[i]] <- confusionMatrix(predict_class_test, validate_used %>% bind_rows() %>% pull(outcome) %>% droplevels(),
-    positive = positive.class
+                                            positive = positive.class
   )
 }
 
@@ -166,23 +166,46 @@ matrix_test$overall %>%
   round(., 3) %>%
   t() %>%
   cbind(.,
-    AUC = multiclass.roc(response = validate_used %>%
-      bind_rows() %>%
-      pull(outcome), predictor = predict_prob_test) %>%
-      .$auc %>%
-      as.numeric() %>%
-      round(3),
-    micro_F1 = matrix_one_vs_all %>% get.micro.f1() %>% round(3),
-    macro_F1 = matrix_one_vs_all %>% get.macro.f1() %>% round(3)
+        AUC = multiclass.roc(response = validate_used %>%
+                               bind_rows() %>%
+                               pull(outcome), predictor = predict_prob_test) %>%
+          .$auc %>%
+          as.numeric() %>%
+          round(3),
+        micro_F1 = matrix_one_vs_all %>% get.micro.f1() %>% round(3),
+        macro_F1 = matrix_one_vs_all %>% get.macro.f1() %>% round(3)
   ) %>%
   write.csv("figures_tables\\Table_2_spike.csv")
 
 # Supplementary Tables
 
+# Supplementary Table S1, distribution of sequences per coronavirus
+rbind(model_df_predownsample %>% 
+        filter(!(taxid %in% c(1335626, 694009, 627442, 228404, 2697049, 1263720, 1235996, 1298362, 1306931, 627439, 166124) & outcome == "human")) %>%
+        filter(!(taxid %in% c(2032731, 2045491, 2018513, 2026237) & outcome == "swine")) %>%
+        filter(outcome %in% c("aves", "camel", "carnivore", "human", "rodent", "swine", "yangbat", "yinbat")) %>%
+        group_by(childtaxa_name) %>%
+        summarise(n = n()) %>%
+        summarise(sd = sd(n), min = min(n), max = max(n)),
+      model_df %>%
+        group_by(childtaxa_name) %>%
+        summarise(n = n()) %>%
+        summarise(sd = sd(n), min = min(n), max = max(n))) %>%
+  t() %>%
+  set_colnames(c("predatathin", "postdatathin")) %>%
+  write.csv("figures_tables\\Supp_Table_1_spike.csv")
+
 # Supplementary Table S2, number of sequences per host category
-model_df %>%
-  group_by(outcome) %>%
-  summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>%
+cbind(model_df_predownsample %>% 
+        filter(!(taxid %in% c(1335626, 694009, 627442, 228404, 2697049, 1263720, 1235996, 1298362, 1306931, 627439, 166124) & outcome == "human")) %>%
+        filter(!(taxid %in% c(2032731, 2045491, 2018513, 2026237) & outcome == "swine")) %>%
+        filter(outcome %in% c("aves", "camel", "carnivore", "human", "rodent", "swine", "yangbat", "yinbat")) %>%
+        group_by(outcome) %>%
+        summarise(n_sequences_predatathin = n()),
+      model_df %>%
+        group_by(outcome) %>%
+        summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>%
+        select(-outcome)) %>%
   write.csv("figures_tables\\Supp_Table_2_spike.csv")
 
 # Supplementary Table 6, precision/recall by class
@@ -253,10 +276,10 @@ valid_df_ordered_spike <- rbind(
   valid_df_raw %>% filter(host_category == "camel") %>% arrange(-camel),
   valid_df_raw %>% filter(host_category == "carnivore") %>% arrange(-carnivore),
   valid_df_raw %>% filter(host_category == "human") %>% arrange(factor(childtaxa_name, levels = valid_df_raw %>%
-    filter(host_category == "human") %>%
-    arrange(-human) %>%
-    pull(childtaxa_name) %>%
-    unique()), -human),
+                                                                         filter(host_category == "human") %>%
+                                                                         arrange(-human) %>%
+                                                                         pull(childtaxa_name) %>%
+                                                                         unique()), -human),
   valid_df_raw %>% filter(host_category == "rodent") %>% arrange(-rodent),
   valid_df_raw %>% filter(host_category == "swine") %>% arrange(-swine),
   valid_df_raw %>% filter(host_category == "yangbat") %>% arrange(-yangbat),
@@ -567,7 +590,7 @@ for (i in 1:length(vars_to_pd_spike)) {
       "yangbat" = "yangochiroptera",
       "yinbat" = "yinpterochiroptera"
     )))
-
+  
   plot_df_summ <- plot_df %>%
     melt(id.vars = names(plot_df)[1]) %>%
     group_by(!!sym(names(plot_df)[1]), variable) %>%
@@ -576,7 +599,7 @@ for (i in 1:length(vars_to_pd_spike)) {
       lower = quantile(value, probs = .025),
       upper = quantile(value, probs = .975)
     )
-
+  
   assign(
     paste0("SF6_spike_spike_", i),
     ggplot(
@@ -609,7 +632,7 @@ for (i in 1:length(vars_to_pd_wg)) {
       "yangbat" = "yangochiroptera",
       "yinbat" = "yinpterochiroptera"
     )))
-
+  
   plot_df_summ <- plot_df %>%
     melt(id.vars = names(plot_df)[1]) %>%
     group_by(!!sym(names(plot_df)[1]), variable) %>%
@@ -618,7 +641,7 @@ for (i in 1:length(vars_to_pd_wg)) {
       lower = quantile(value, probs = .025),
       upper = quantile(value, probs = .975)
     )
-
+  
   assign(
     paste0("SF7_spike_wg_", i),
     ggplot(
@@ -705,7 +728,7 @@ gridsearch <- lapply(rf_list, function(x) {
     mtry = factor(mtry, levels = c("5", "12.5", "20"))
   )
 
-# Select holdout used
+# Specify held out data as test sets
 validate_used <- lapply(unique(model_df$taxid), function(x) {
   model_df %>% filter(taxid == x)
 })
@@ -742,7 +765,7 @@ for (i in seq_along(matrix_one_vs_all)) {
   positive.class <- levels(model_df$outcome)[i]
   # in the i-th iteration, use the i-th class as the positive class
   matrix_one_vs_all[[i]] <- confusionMatrix(predict_class_test, validate_used %>% bind_rows() %>% pull(outcome) %>% droplevels(),
-    positive = positive.class
+                                            positive = positive.class
   )
 }
 
@@ -831,23 +854,46 @@ matrix_test$overall %>%
   round(., 3) %>%
   t() %>%
   cbind(.,
-    AUC = multiclass.roc(response = validate_used %>%
-      bind_rows() %>%
-      pull(outcome), predictor = predict_prob_test) %>%
-      .$auc %>%
-      as.numeric() %>%
-      round(3),
-    micro_F1 = matrix_one_vs_all %>% get.micro.f1() %>% round(3),
-    macro_F1 = matrix_one_vs_all %>% get.macro.f1() %>% round(3)
+        AUC = multiclass.roc(response = validate_used %>%
+                               bind_rows() %>%
+                               pull(outcome), predictor = predict_prob_test) %>%
+          .$auc %>%
+          as.numeric() %>%
+          round(3),
+        micro_F1 = matrix_one_vs_all %>% get.micro.f1() %>% round(3),
+        macro_F1 = matrix_one_vs_all %>% get.macro.f1() %>% round(3)
   ) %>%
   write.csv("figures_tables\\Table_2_wg.csv")
 
 # Supplementary Tables
 
+# Supplementary Table S1, distribution of sequences per coronavirus
+rbind(model_df_predownsample %>% 
+        filter(!(taxid %in% c(1335626, 694009, 627442, 228404, 2697049, 1263720, 1235996, 1298362, 1306931, 627439, 166124) & outcome == "human")) %>%
+        filter(!(taxid %in% c(2032731, 2045491, 2018513, 2026237) & outcome == "swine")) %>%
+        filter(outcome %in% c("aves", "camel", "carnivore", "human", "rodent", "swine", "yangbat", "yinbat")) %>%
+        group_by(childtaxa_name) %>%
+        summarise(n = n()) %>%
+        summarise(sd = sd(n), min = min(n), max = max(n)),
+      model_df %>%
+        group_by(childtaxa_name) %>%
+        summarise(n = n()) %>%
+        summarise(sd = sd(n), min = min(n), max = max(n))) %>%
+  t() %>%
+  set_colnames(c("predatathin", "postdatathin")) %>%
+  write.csv("figures_tables\\Supp_Table_1_wg.csv")
+
 # Supplementary Table S2, number of sequences per host category
-model_df %>%
-  group_by(outcome) %>%
-  summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>%
+cbind(model_df_predownsample %>% 
+        filter(!(taxid %in% c(1335626, 694009, 627442, 228404, 2697049, 1263720, 1235996, 1298362, 1306931, 627439, 166124) & outcome == "human")) %>%
+        filter(!(taxid %in% c(2032731, 2045491, 2018513, 2026237) & outcome == "swine")) %>%
+        filter(outcome %in% c("aves", "camel", "carnivore", "human", "rodent", "swine", "yangbat", "yinbat")) %>%
+        group_by(outcome) %>%
+        summarise(n_sequences_predatathin = n()),
+      model_df %>%
+        group_by(outcome) %>%
+        summarise(n_sequences = n(), n_species = n_distinct(taxid)) %>%
+        select(-outcome)) %>%
   write.csv("figures_tables\\Supp_Table_2_wg.csv")
 
 # Supplementary Table 7, precision/recall by class
@@ -918,10 +964,10 @@ valid_df_ordered_wg <- rbind(
   valid_df_raw %>% filter(host_category == "camel") %>% arrange(-camel),
   valid_df_raw %>% filter(host_category == "carnivore") %>% arrange(-carnivore),
   valid_df_raw %>% filter(host_category == "human") %>% arrange(factor(childtaxa_name, levels = valid_df_raw %>%
-    filter(host_category == "human") %>%
-    arrange(-human) %>%
-    pull(childtaxa_name) %>%
-    unique()), -human),
+                                                                         filter(host_category == "human") %>%
+                                                                         arrange(-human) %>%
+                                                                         pull(childtaxa_name) %>%
+                                                                         unique()), -human),
   valid_df_raw %>% filter(host_category == "rodent") %>% arrange(-rodent),
   valid_df_raw %>% filter(host_category == "swine") %>% arrange(-swine),
   valid_df_raw %>% filter(host_category == "yangbat") %>% arrange(-yangbat),
@@ -1034,9 +1080,9 @@ varimp_comp <- varimp_wg %>%
   group_by(name) %>%
   summarise(mean_wgs = mean(relGini)) %>%
   left_join(varimp_spike %>%
-    group_by(name) %>%
-    summarise(mean_spike = mean(relGini)),
-  by = "name"
+              group_by(name) %>%
+              summarise(mean_spike = mean(relGini)),
+            by = "name"
   ) %>%
   mutate(type = case_when(
     grepl("^[A|C|G|U]$", name) ~ "nucleotide biases",
@@ -1261,7 +1307,7 @@ for (i in 1:length(vars_to_pd_spike)) {
       "yangbat" = "yangochiroptera",
       "yinbat" = "yinpterochiroptera"
     )))
-
+  
   plot_df_summ <- plot_df %>%
     melt(id.vars = names(plot_df)[1]) %>%
     group_by(!!sym(names(plot_df)[1]), variable) %>%
@@ -1270,7 +1316,7 @@ for (i in 1:length(vars_to_pd_spike)) {
       lower = quantile(value, probs = .025),
       upper = quantile(value, probs = .975)
     )
-
+  
   assign(
     paste0("SF6_wg_spike_", i),
     ggplot(
@@ -1303,7 +1349,7 @@ for (i in 1:length(vars_to_pd_wg)) {
       "yangbat" = "yangochiroptera",
       "yinbat" = "yinpterochiroptera"
     )))
-
+  
   plot_df_summ <- plot_df %>%
     melt(id.vars = names(plot_df)[1]) %>%
     group_by(!!sym(names(plot_df)[1]), variable) %>%
@@ -1312,7 +1358,7 @@ for (i in 1:length(vars_to_pd_wg)) {
       lower = quantile(value, probs = .025),
       upper = quantile(value, probs = .975)
     )
-
+  
   assign(
     paste0("SF7_wg_wg_", i),
     ggplot(
