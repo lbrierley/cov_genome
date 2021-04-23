@@ -1,6 +1,6 @@
 # Predicting hosts of coronaviruses from genome composition biases
 
-Supporting data and code associated with Brierley, L., & Fowler, A. (2020). Predicting the animal hosts of coronaviruses from compositional biases of spike protein and whole genome sequences through machine learning. bioRxiv preprint, 2020.11.02.350439. https://doi.org/10.1101/2020.11.02.350439
+Supporting data and code associated with Brierley, L., & Fowler, A. (2021). Predicting the animal hosts of coronaviruses from compositional biases of spike protein and whole genome sequences through machine learning. PLOS Pathogens. 2021;17(4):e1009149. https://doi.org/10.1371/journal.ppat.1009149
 
 ## Scripts
 
@@ -18,4 +18,4 @@ Supporting data and code associated with Brierley, L., & Fowler, A. (2020). Pred
 
 These three scripts are not run by default as they require significant computing time. For `build_random_forest.R` and `partial_dependence.R` saved output .RData files are provided in `/outputs`.
 
-`figures_tables.R` reconstructs figures and tables associated with Brierley & Fowler 2020.
+`figures_tables.R` reconstructs figures and tables associated with Brierley & Fowler 2021.
